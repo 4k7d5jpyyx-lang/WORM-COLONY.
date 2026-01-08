@@ -23,55 +23,60 @@ body{
   overflow:hidden;
 }
 
+/* App layout: header + full-height sim */
 .app{
   height:100%;
-  display:grid;
-  grid-template-rows:auto 1fr;
+  display:flex;
+  flex-direction:column;
   gap:12px;
   padding:12px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
 }
 
-/* Top bar */
+/* ---------- TOP BAR (desktop/tablet) ---------- */
 .topbar{
-  display:flex;
+  display:grid;
+  grid-template-columns: 260px 1fr auto;
   align-items:center;
-  justify-content:space-between;
   gap:12px;
   background:var(--panel);
   border:1px solid var(--stroke);
   border-radius:18px;
-  padding:10px 12px;
+  padding:12px;
   backdrop-filter: blur(10px);
 }
 
+/* Brand */
 .brand{
   display:flex;
   align-items:center;
   gap:10px;
-  min-width: 180px;
+  min-width:0;
 }
-
 .logoWrap{
-  width:44px;height:44px;
+  width:46px;height:46px;
   border-radius:14px;
   border:1px solid rgba(255,255,255,.14);
   background:rgba(0,0,0,.25);
   display:grid;
   place-items:center;
   overflow:hidden;
+  flex:0 0 auto;
 }
-
 #logoImg{
-  width:38px;height:38px;
+  width:40px;height:40px;
   object-fit:contain;
   filter: drop-shadow(0 0 12px rgba(120,255,210,.22));
 }
-
-.title{line-height:1.05}
+.title{line-height:1.05; min-width:0}
 .title .name{
   font-weight:900;
   letter-spacing:.02em;
   font-size:14px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 .title .ticker{
   font-weight:800;
@@ -81,18 +86,20 @@ body{
   margin-top:3px;
 }
 
+/* Stats */
 .stats{
   display:flex;
   gap:10px;
   flex-wrap:wrap;
   justify-content:center;
+  min-width:0;
 }
 .stat{
   padding:8px 10px;
   border-radius:14px;
   border:1px solid rgba(255,255,255,.10);
   background:rgba(0,0,0,.18);
-  min-width:108px;
+  min-width:110px;
 }
 .stat .k{
   font-size:10px;
@@ -106,13 +113,13 @@ body{
   letter-spacing:.02em;
 }
 
-/* Buttons */
+/* Controls */
 .controls{
   display:flex;
   gap:8px;
   flex-wrap:wrap;
   justify-content:flex-end;
-  min-width: 220px;
+  align-items:center;
 }
 .btn{
   border:1px solid rgba(255,255,255,.14);
@@ -126,6 +133,7 @@ body{
   backdrop-filter: blur(10px);
   user-select:none;
   -webkit-tap-highlight-color: transparent;
+  white-space:nowrap;
 }
 .btn:hover{border-color:rgba(255,255,255,.22)}
 .btn.primary{
@@ -133,13 +141,13 @@ body{
   box-shadow: 0 0 0 1px rgba(120,255,210,.12) inset;
 }
 
-/* Main layout */
+/* ---------- MAIN ---------- */
 .main{
-  height:100%;
+  flex:1;
+  min-height:0;
   display:grid;
   grid-template-columns: 1fr 360px;
   gap:12px;
-  min-height:0;
 }
 
 .sim{
@@ -159,9 +167,11 @@ canvas#c{
   display:block;
 }
 
+/* Hint bar */
 .hint{
   position:absolute;
   left:12px;
+  right:12px;
   bottom:12px;
   padding:10px 12px;
   border-radius:16px;
@@ -174,13 +184,13 @@ canvas#c{
 }
 .hint span{opacity:.65;font-weight:800}
 
+/* Side log */
 .side{
   display:flex;
   flex-direction:column;
   gap:12px;
   min-height:0;
 }
-
 .panel{
   background:var(--panel);
   border:1px solid var(--stroke);
@@ -192,7 +202,6 @@ canvas#c{
   display:flex;
   flex-direction:column;
 }
-
 .panel h3{
   margin:0 0 10px 0;
   font-size:11px;
@@ -200,13 +209,11 @@ canvas#c{
   opacity:.70;
   font-weight:900;
 }
-
 .log{
   overflow:auto;
   padding-right:6px;
   max-height: 100%;
 }
-
 .logItem{
   border:1px solid rgba(255,255,255,.10);
   background:rgba(0,0,0,.18);
@@ -215,7 +222,6 @@ canvas#c{
   margin-bottom:10px;
   position:relative;
 }
-
 .logTop{
   display:flex;
   align-items:center;
@@ -225,7 +231,6 @@ canvas#c{
   opacity:.75;
   font-weight:800;
 }
-
 .pill{
   padding:4px 8px;
   border-radius:999px;
@@ -240,7 +245,6 @@ canvas#c{
 .pill.split{border-color:rgba(109,255,181,.30);background:var(--good)}
 .pill.mil{border-color:rgba(100,169,255,.30);background:var(--blue)}
 .pill.boss{border-color:rgba(255,212,86,.30);background:var(--gold)}
-
 .logBody{
   margin-top:6px;
   font-size:13px;
@@ -265,7 +269,7 @@ canvas#c{
 /* Toast */
 .toast{
   position:fixed;
-  top:16px;
+  top: calc(14px + env(safe-area-inset-top));
   left:50%;
   transform:translateX(-50%);
   background:rgba(0,0,0,.45);
@@ -328,8 +332,51 @@ canvas#c{
   margin-right:6px;
 }
 
-/* Mobile: hide side panel */
+/* ---------- MOBILE (restore the earlier clean look + big sim) ---------- */
 @media (max-width: 980px){
-  .main{grid-template-columns:1fr}
-  .side{display:none}
+  body{ overflow:auto; }           /* allow page scroll on iPhone */
+  .app{ min-height:100%; }         /* allow content to extend */
+  .main{
+    grid-template-columns: 1fr;
+  }
+  .side{ display:none; }
+
+  .topbar{
+    grid-template-columns: 1fr;
+    gap:10px;
+  }
+
+  .brand{
+    justify-content:flex-start;
+  }
+
+  /* stats become a clean 2x grid */
+  .stats{
+    display:grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap:10px;
+    justify-content:stretch;
+  }
+  .stat{ min-width:0; }
+
+  /* controls become a nice 2-col grid (no off-screen buttons) */
+  .controls{
+    display:grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap:10px;
+    justify-content:stretch;
+  }
+  .btn{ width:100%; justify-content:center; }
+
+  /* make sim take up MOST of the page like before */
+  .sim{
+    height: min(70vh, 720px);
+    min-height: 520px;
+  }
+
+  /* hint stays inside bottom */
+  .hint{
+    left:10px; right:10px; bottom:10px;
+    font-size:12px;
+  }
 }
