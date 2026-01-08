@@ -30,29 +30,26 @@ body{
     radial-gradient(1000px 600px at 85% 25%, rgba(100,169,255,.10), rgba(0,0,0,0) 55%),
     radial-gradient(900px 900px at 55% 90%, rgba(255,77,255,.06), rgba(0,0,0,0) 60%),
     linear-gradient(180deg, var(--bg0), var(--bg1));
-  /* IMPORTANT: don’t block scrolling globally */
-  overflow: hidden;
+  overflow-x:hidden;              /* ✅ allow vertical scrolling on iPhone */
 }
 
 img{ max-width:100%; height:auto; display:block; }
 button{ font-family:inherit; }
 *{ -webkit-tap-highlight-color: rgba(0,0,0,0); }
 
-/* Desktop layout */
+/* Layout (desktop) */
 .wrap{
-  height:100%;
+  min-height:100%;
   display:grid;
   grid-template-columns: 380px 1fr;
   gap:16px;
   padding:16px;
-  min-height:0;
 }
 
 .panel{
   display:flex;
   flex-direction:column;
   gap:14px;
-  min-height:0;
 }
 
 .card{
@@ -62,8 +59,8 @@ button{ font-family:inherit; }
   box-shadow: var(--shadow);
   overflow:hidden;
   position:relative;
-  min-height:0;
 }
+
 .card::before{
   content:"";
   position:absolute;
@@ -76,6 +73,7 @@ button{ font-family:inherit; }
 }
 .card > *{ position:relative; z-index:1; }
 
+/* Header */
 .header{
   padding:16px 16px 14px;
   display:flex;
@@ -95,9 +93,7 @@ button{ font-family:inherit; }
   max-height:42px;
   object-fit:contain;
   filter: drop-shadow(0 0 14px rgba(109,255,181,.18));
-  flex:0 0 auto;
 }
-.title{ display:flex; flex-direction:column; min-width:0; }
 .title h1{
   margin:0;
   font-size:16px;
@@ -126,6 +122,7 @@ button{ font-family:inherit; }
   letter-spacing:.14em;
 }
 
+/* Stats */
 .stats{
   padding:0 16px 16px;
   display:grid;
@@ -140,16 +137,6 @@ button{ font-family:inherit; }
   position:relative;
   overflow:hidden;
 }
-.stat::after{
-  content:"";
-  position:absolute;
-  inset:-1px;
-  background:
-    radial-gradient(420px 120px at 20% 0%, rgba(109,255,181,.10), rgba(0,0,0,0) 60%),
-    radial-gradient(420px 120px at 90% 30%, rgba(100,169,255,.10), rgba(0,0,0,0) 60%);
-  opacity:.7;
-  pointer-events:none;
-}
 .k{
   font-size:11px;
   letter-spacing:.12em;
@@ -163,6 +150,7 @@ button{ font-family:inherit; }
   letter-spacing:.2px;
 }
 
+/* Controls */
 .controls{
   padding:14px 16px 16px;
   display:flex;
@@ -171,7 +159,6 @@ button{ font-family:inherit; }
   border-top:1px solid rgba(255,255,255,.08);
   background: rgba(0,0,0,.12);
 }
-
 .btn{
   appearance:none;
   border:1px solid rgba(255,255,255,.12);
@@ -182,17 +169,8 @@ button{ font-family:inherit; }
   font-weight:650;
   letter-spacing:.2px;
   cursor:pointer;
-  transition: transform .12s ease, border-color .12s ease, background .12s ease, filter .12s ease;
-  box-shadow: 0 10px 25px rgba(0,0,0,.25);
   user-select:none;
 }
-.btn:hover{
-  transform: translateY(-1px);
-  border-color: rgba(109,255,181,.28);
-  background: rgba(109,255,181,.08);
-  filter: drop-shadow(0 0 12px rgba(109,255,181,.10));
-}
-.btn:active{ transform: translateY(0); }
 .btn.primary{
   border-color: rgba(100,169,255,.28);
   background: rgba(100,169,255,.10);
@@ -202,7 +180,7 @@ button{ font-family:inherit; }
   background: rgba(255,77,255,.10);
 }
 
-.log{ min-height:0; display:flex; flex-direction:column; }
+/* Log */
 .logHead{
   padding:14px 16px;
   border-bottom:1px solid rgba(255,255,255,.08);
@@ -216,11 +194,14 @@ button{ font-family:inherit; }
 }
 .logBody{
   padding:12px 12px 14px;
-  overflow:auto;
-  min-height:0;
 }
 
-.stage{ min-height:0; display:flex; flex-direction:column; }
+/* Stage */
+.stage{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
 .stageTop{
   padding:12px 14px;
   display:flex;
@@ -229,13 +210,14 @@ button{ font-family:inherit; }
   gap:12px;
   flex-wrap:wrap;
 }
-.stageTop .hint{ font-size:12px; color:var(--muted); }
+.stageTop .hint{
+  font-size:12px;
+  color:var(--muted);
+}
 .stageTop .hint b{ color:rgba(233,238,247,.92); }
 
 .canvasWrap{
   position:relative;
-  flex:1;
-  min-height:0;
   border-radius:var(--radius);
   border:1px solid rgba(255,255,255,.10);
   background:
@@ -245,15 +227,15 @@ button{ font-family:inherit; }
     rgba(0,0,0,.22);
   box-shadow: var(--shadow);
   overflow:hidden;
+  height: 520px;                 /* ✅ desktop default */
 }
 
-/* canvas should receive taps */
 #c{
   width:100%;
   height:100%;
   display:block;
   border-radius:inherit;
-  touch-action: none;
+  touch-action: none;            /* taps work */
 }
 
 .watermark{
@@ -274,14 +256,13 @@ button{ font-family:inherit; }
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   max-width: calc(100% - 28px);
-  pointer-events:none; /* never block taps */
+  pointer-events:none;           /* never block taps */
 }
 .watermark img{
   width:20px; height:20px;
   max-width:20px; max-height:20px;
   object-fit:contain;
   filter: drop-shadow(0 0 10px rgba(109,255,181,.18));
-  flex:0 0 auto;
 }
 .watermark span{
   white-space:nowrap;
@@ -289,74 +270,38 @@ button{ font-family:inherit; }
   text-overflow:ellipsis;
 }
 
-/* ===========================================================
-   MOBILE: make the PANEL scroll, keep CONTROLS visible,
-   keep the SIM always on screen.
-   =========================================================== */
+/* ============ MOBILE (FIXED) ============ */
 @media (max-width: 980px){
-  /* Lock page, but enable internal scrolling areas */
-  body{ overflow:hidden; }
-
   .wrap{
-    height: 100dvh;
-    padding: 12px;
-    gap: 12px;
-    grid-template-columns: 1fr;
-    grid-template-rows: 44dvh 1fr;  /* top panel, bottom sim */
-    overflow:hidden;
+    display:block;               /* ✅ simplest iOS-friendly layout */
+    padding:12px;
   }
 
-  /* Panel becomes its own scroll container */
-  .panel{
-    min-height:0;
-    overflow:hidden;
-  }
-
-  /* Make the first card (stats/controls) scrollable internally */
-  .panel .card:first-child{
-    min-height:0;
-    overflow:auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* Keep controls always visible inside that card */
-  .controls{
-    position: sticky;
-    bottom: 0;
-    z-index: 20;
-    background: rgba(0,0,0,.22);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(255,255,255,.10);
-  }
-
-  /* Make the log card scrollable too */
-  .logBody{
-    max-height: 18dvh;
-    overflow:auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* Ensure sim takes remaining space */
-  .stage{ min-height:0; overflow:hidden; }
-  .canvasWrap{ height: 100%; min-height:0; }
-  #c{ height: 100%; }
-
-  /* Logo cap */
+  /* keep logo from ever going huge */
   .brand img{
-    width:40px; height:40px;
-    max-width:40px; max-height:40px;
+    width:40px;
+    height:40px;
+    max-width:40px;
+    max-height:40px;
   }
 
+  /* spacing so it doesn't feel smushed */
+  .card{ margin-bottom:12px; }
+  .controls{ gap:8px; }
   .btn{
-    padding: 9px 10px;
-    border-radius: 12px;
-    font-size: 13px;
+    padding:10px 12px;
+    border-radius:12px;
+    font-size:14px;
   }
 
-  .watermark{
-    left:10px;
-    bottom:10px;
-    font-size:11px;
+  /* Make the simulation big and tappable */
+  .canvasWrap{
+    height: 56vh;                /* ✅ big canvas on iPhone */
+    min-height: 340px;
+  }
+
+  /* The log can be long; allow it naturally */
+  .logBody{
+    max-height:none;
   }
 }
