@@ -4,84 +4,85 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
   <title>Worm Colony</title>
-
-  <!-- Primary stylesheet (MUST exist as /styles.css beside index.html) -->
-  <link rel="stylesheet" href="./styles.css?v=7" />
-
-  <!-- Failsafe: if CSS doesn't load, still not broken -->
-  <style>
-    body{margin:0;background:#05060a;color:rgba(233,238,247,.92);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-    .app{padding:12px}
-    .topbar,.sim,.panel{background:rgba(0,0,0,.38);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:12px}
-    .main{display:grid;gap:12px}
-    .sim{position:relative;height:70vh;min-height:520px;overflow:hidden}
-    canvas{position:absolute;inset:0;width:100%;height:100%}
-  </style>
+  <link rel="stylesheet" href="./styles.css?v=99" />
 </head>
 
 <body>
   <div class="app">
-    <div class="topbar">
+
+    <!-- HEADER (small, never overlays sim) -->
+    <header class="header">
       <div class="brand">
         <div class="logoWrap">
-          <img id="logoImg" alt="Worm Colony logo"
-            src="https://i.postimg.cc/hGj8JD0V/1614F03F-52AD-453C-8DB1-09A3B29F3469.png">
+          <img id="logoImg"
+               src="https://i.postimg.cc/hGj8JD0V/1614F03F-52AD-453C-8DB1-09A3B29F3469.png"
+               alt="Worm Colony logo">
         </div>
-        <div class="title">
-          <div class="name">Worm Colony</div>
-          <div class="ticker">$WORM</div>
+        <div class="brandText">
+          <div class="brandName">Worm Colony</div>
+          <div class="brandTicker">$WORM</div>
         </div>
       </div>
 
-      <div class="stats">
-        <div class="stat"><div class="k">BUYERS</div><div class="v" id="buyers">0</div></div>
-        <div class="stat"><div class="k">VOLUME</div><div class="v" id="vol">$0</div></div>
-        <div class="stat"><div class="k">M CAP</div><div class="v" id="mcap">$0</div></div>
-        <div class="stat"><div class="k">COLONIES</div><div class="v" id="cols">1</div></div>
-        <div class="stat"><div class="k">WORMS</div><div class="v" id="worms">0</div></div>
-      </div>
+      <div class="miniLine">Growth driven by buyers, volume, and market cap.</div>
+    </header>
 
-      <div class="controls">
-        <button id="feedBtn" class="btn primary">Feed</button>
-        <button id="smallFeed" class="btn">Small Buy</button>
-        <button id="bigFeed" class="btn">Whale Buy</button>
-        <button id="sellBtn" class="btn">Sell-off</button>
-        <button id="stormBtn" class="btn">Volume Storm</button>
-        <button id="mutateBtn" class="btn">Mutate</button>
-        <button id="focusBtn" class="btn">Focus: Off</button>
-        <button id="zoomInBtn" class="btn">Zoom +</button>
-        <button id="zoomOutBtn" class="btn">Zoom −</button>
-        <button id="captureBtn" class="btn primary">Capture</button>
-        <button id="resetBtn" class="btn">Reset</button>
-      </div>
-    </div>
-
-    <div class="main">
-      <div class="sim">
+    <!-- MAIN: big sim always visible -->
+    <main class="main">
+      <section class="simShell">
         <canvas id="c"></canvas>
 
-        <div class="focusPanel" id="focusPanel">
-          <div class="fpTitle">COLONY FOCUS</div>
-          <div class="fpRow"><span><span class="fpLabel">Colony</span></span><span id="fpSelected">#1</span></div>
-          <div class="fpRow"><span><span class="fpLabel">DNA</span></span><span id="fpDNA">—</span></div>
-          <div class="fpRow"><span><span class="fpLabel">Biome</span></span><span id="fpBiome">—</span></div>
-          <div class="fpRow"><span><span class="fpLabel">Style</span></span><span id="fpStyle">—</span></div>
+        <!-- HUD (stats + controls) -->
+        <div class="hud">
+          <div class="statsGrid">
+            <div class="stat"><div class="k">BUYERS</div><div class="v" id="buyers">0</div></div>
+            <div class="stat"><div class="k">VOLUME</div><div class="v" id="vol">$0</div></div>
+            <div class="stat"><div class="k">M CAP</div><div class="v" id="mcap">$0</div></div>
+            <div class="stat"><div class="k">COLONIES</div><div class="v" id="cols">1</div></div>
+            <div class="stat"><div class="k">WORMS</div><div class="v" id="worms">0</div></div>
+          </div>
+
+          <div class="btnGrid">
+            <button id="feedBtn" class="btn primary">Feed</button>
+            <button id="smallFeed" class="btn">Small Buy</button>
+            <button id="bigFeed" class="btn">Whale Buy</button>
+            <button id="sellBtn" class="btn">Sell-off</button>
+            <button id="stormBtn" class="btn">Volume Storm</button>
+            <button id="mutateBtn" class="btn">Mutate</button>
+            <button id="focusBtn" class="btn">Focus: Off</button>
+            <button id="zoomInBtn" class="btn">Zoom +</button>
+            <button id="zoomOutBtn" class="btn">Zoom −</button>
+            <button id="captureBtn" class="btn primary">Capture</button>
+            <button id="resetBtn" class="btn danger">Reset</button>
+          </div>
         </div>
 
-        <div class="hint"><span>Tap</span> colonies • <span>Drag</span> pan • <span>Pinch</span> zoom • <span>Double tap</span> center</div>
-      </div>
+        <!-- Focus info (never blocks touch) -->
+        <div class="focusPanel" id="focusPanel">
+          <div class="fpTitle">COLONY FOCUS</div>
+          <div class="fpRow"><span class="fpL">Colony</span><span id="fpSelected">#1</span></div>
+          <div class="fpRow"><span class="fpL">DNA</span><span id="fpDNA">—</span></div>
+          <div class="fpRow"><span class="fpL">Biome</span><span id="fpBiome">—</span></div>
+          <div class="fpRow"><span class="fpL">Style</span><span id="fpStyle">—</span></div>
+        </div>
 
-      <div class="side">
+        <div class="hint">
+          Tap colonies • Drag pan • Pinch zoom • Double tap center
+        </div>
+      </section>
+
+      <!-- Log (hidden on mobile, visible on desktop) -->
+      <aside class="side">
         <div class="panel">
           <h3>Mutation Log</h3>
           <div id="log" class="log"></div>
         </div>
-      </div>
-    </div>
+      </aside>
+    </main>
 
     <div id="toast" class="toast"></div>
   </div>
 
-  <script src="./script.js?v=7"></script>
+  <script src="./script.js?v=99"></script>
 </body>
 </html>
