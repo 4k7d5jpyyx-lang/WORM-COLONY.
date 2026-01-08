@@ -1,15 +1,17 @@
 :root{
   --bg:#05060a;
-  --panel:rgba(0,0,0,.42);
+  --panel:rgba(0,0,0,.45);
   --stroke:rgba(255,255,255,.12);
   --text:rgba(233,238,247,.92);
-  --mut:rgba(255,77,255,.18);
-  --good:rgba(109,255,181,.18);
-  --blue:rgba(100,169,255,.18);
-  --gold:rgba(255,212,86,.18);
 
-  --neonA: rgba(120,255,210,.24);
-  --neonB: rgba(180,90,255,.18);
+  --a: rgba(120,255,210,.22);
+  --b: rgba(180,90,255,.18);
+  --c: rgba(80,160,255,.14);
+
+  --btn: rgba(0,0,0,.28);
+  --btnStroke: rgba(255,255,255,.14);
+  --btnGlow: rgba(120,255,210,.18);
+  --danger: rgba(255,90,110,.22);
 }
 
 *{box-sizing:border-box}
@@ -18,30 +20,20 @@ html,body{height:100%}
 body{
   margin:0;
   background:
-    radial-gradient(1200px 700px at 65% 25%, rgba(120,255,210,.07), transparent 60%),
-    radial-gradient(900px 600px at 20% 70%, rgba(160,100,255,.07), transparent 60%),
+    radial-gradient(1100px 700px at 65% 18%, rgba(120,255,210,.07), transparent 60%),
+    radial-gradient(900px 600px at 20% 75%, rgba(160,100,255,.07), transparent 60%),
     var(--bg);
   color:var(--text);
   font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
-  overflow-x:hidden;
+  overflow:hidden;
 }
 
-/* IMPORTANT: prevent any random <img> from taking over the page */
-img{
-  max-width:100%;
-  height:auto;
-}
+/* Prevent random images from hijacking layout */
+img{max-width:100%;height:auto}
+img:not(#logoImg){display:none !important;}
 
-/* If someone accidentally left a big coin image in the HTML, it won't blow up the layout */
-img:not(#logoImg){
-  max-height: 220px;
-  object-fit: contain;
-  border-radius: 16px;
-}
-
-/* App */
 .app{
-  min-height:100%;
+  height:100%;
   display:flex;
   flex-direction:column;
   gap:12px;
@@ -51,28 +43,26 @@ img:not(#logoImg){
 }
 
 /* Header */
-.topbar{
-  display:grid;
-  grid-template-columns: 240px 1fr auto;
+.header{
+  display:flex;
   align-items:center;
+  justify-content:space-between;
   gap:12px;
+  padding:12px 14px;
+  border-radius:18px;
   background:var(--panel);
   border:1px solid var(--stroke);
-  border-radius:18px;
-  padding:12px;
   backdrop-filter: blur(10px);
-  box-shadow:
-    0 0 0 1px rgba(120,255,210,.08) inset,
-    0 18px 60px rgba(0,0,0,.28);
+  box-shadow: 0 18px 60px rgba(0,0,0,.28);
 }
 
-/* Brand */
 .brand{
   display:flex;
   align-items:center;
   gap:10px;
   min-width:0;
 }
+
 .logoWrap{
   width:46px;height:46px;
   border-radius:14px;
@@ -83,95 +73,38 @@ img:not(#logoImg){
   overflow:hidden;
   flex:0 0 auto;
 }
+
 #logoImg{
   width:40px !important;
   height:40px !important;
   object-fit:contain;
-  transform: translateZ(0);
-  filter: drop-shadow(0 0 14px rgba(120,255,210,.28));
+  filter: drop-shadow(0 0 16px rgba(120,255,210,.28));
 }
-.title{line-height:1.05; min-width:0}
-.title .name{
-  font-weight:900;
+
+.brandText{line-height:1.05}
+.brandName{
+  font-weight:950;
   letter-spacing:.02em;
   font-size:14px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
 }
-.title .ticker{
+.brandTicker{
+  margin-top:3px;
   font-weight:900;
   letter-spacing:.20em;
   font-size:11px;
-  opacity:.70;
-  margin-top:3px;
+  opacity:.75;
 }
 
-/* Stats */
-.stats{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  justify-content:center;
-}
-.stat{
-  padding:9px 10px;
-  border-radius:14px;
-  border:1px solid rgba(255,255,255,.10);
-  background:rgba(0,0,0,.20);
-  min-width:110px;
-  box-shadow: 0 0 0 1px rgba(255,255,255,.03) inset;
-}
-.stat .k{
-  font-size:10px;
-  letter-spacing:.16em;
-  opacity:.58;
-  font-weight:900;
-}
-.stat .v{
-  margin-top:4px;
-  font-weight:900;
-  letter-spacing:.02em;
+.miniLine{
+  font-weight:800;
+  font-size:12px;
+  letter-spacing:.04em;
+  opacity:.72;
+  text-align:right;
+  max-width: 55%;
 }
 
-/* Controls (buttons) */
-.controls{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  justify-content:flex-end;
-  align-items:center;
-}
-
-.btn{
-  border:1px solid rgba(255,255,255,.14);
-  background:
-    radial-gradient(160px 90px at 20% 20%, rgba(120,255,210,.10), transparent 60%),
-    radial-gradient(160px 90px at 80% 80%, rgba(180,90,255,.10), transparent 65%),
-    rgba(0,0,0,.22);
-  color:rgba(233,238,247,.90);
-  border-radius:14px;
-  padding:10px 12px;
-  font:900 12px system-ui,-apple-system;
-  letter-spacing:.10em;
-  cursor:pointer;
-  user-select:none;
-  -webkit-tap-highlight-color: transparent;
-  white-space:nowrap;
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,.05) inset,
-    0 12px 28px rgba(0,0,0,.22);
-}
-.btn:active{transform: translateY(1px)}
-.btn:hover{border-color: rgba(255,255,255,.24)}
-.btn.primary{
-  border-color: rgba(120,255,210,.34);
-  box-shadow:
-    0 0 0 1px rgba(120,255,210,.14) inset,
-    0 14px 34px rgba(0,0,0,.26);
-}
-
-/* Main */
+/* Main layout */
 .main{
   flex:1;
   min-height:0;
@@ -180,11 +113,11 @@ img:not(#logoImg){
   gap:12px;
 }
 
-.sim{
+.simShell{
   position:relative;
-  background:rgba(0,0,0,.18);
-  border:1px solid var(--stroke);
   border-radius:18px;
+  border:1px solid var(--stroke);
+  background:rgba(0,0,0,.18);
   overflow:hidden;
   min-height:0;
   box-shadow: 0 0 0 1px rgba(120,255,210,.06) inset;
@@ -198,6 +131,137 @@ canvas#c{
   display:block;
 }
 
+/* HUD pinned top-left – NEVER overlaps the center view too much */
+.hud{
+  position:absolute;
+  top:12px;
+  left:12px;
+  width:min(420px, calc(100% - 24px));
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  z-index:20;
+}
+
+/* Stats */
+.statsGrid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap:10px;
+  padding:12px;
+  border-radius:18px;
+  background:rgba(0,0,0,.34);
+  border:1px solid rgba(255,255,255,.12);
+  backdrop-filter: blur(10px);
+}
+.stat{
+  padding:10px 10px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.10);
+  background:
+    radial-gradient(140px 90px at 20% 20%, var(--a), transparent 60%),
+    radial-gradient(140px 90px at 80% 80%, var(--b), transparent 65%),
+    rgba(0,0,0,.20);
+}
+.stat .k{
+  font-size:10px;
+  letter-spacing:.16em;
+  opacity:.62;
+  font-weight:900;
+}
+.stat .v{
+  margin-top:4px;
+  font-weight:950;
+  letter-spacing:.02em;
+  font-size:15px;
+}
+
+/* Buttons */
+.btnGrid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap:10px;
+  padding:12px;
+  border-radius:18px;
+  background:rgba(0,0,0,.34);
+  border:1px solid rgba(255,255,255,.12);
+  backdrop-filter: blur(10px);
+}
+
+.btn{
+  width:100%;
+  border:1px solid var(--btnStroke);
+  background:
+    radial-gradient(160px 90px at 25% 15%, var(--a), transparent 60%),
+    radial-gradient(160px 90px at 85% 85%, var(--b), transparent 65%),
+    var(--btn);
+  color:rgba(233,238,247,.92);
+  border-radius:14px;
+  padding:12px 12px;
+  font:950 12px system-ui,-apple-system;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  cursor:pointer;
+  user-select:none;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.05) inset,
+    0 14px 30px rgba(0,0,0,.26);
+}
+.btn:active{transform: translateY(1px)}
+.btn.primary{
+  border-color: rgba(120,255,210,.36);
+  box-shadow:
+    0 0 0 1px rgba(120,255,210,.14) inset,
+    0 16px 36px rgba(0,0,0,.28);
+}
+.btn.danger{
+  border-color: rgba(255,90,110,.35);
+  background:
+    radial-gradient(160px 90px at 25% 20%, var(--danger), transparent 60%),
+    radial-gradient(160px 90px at 85% 85%, var(--b), transparent 65%),
+    var(--btn);
+}
+
+/* Focus panel – readable, but NEVER blocks touches */
+.focusPanel{
+  position:absolute;
+  right:12px;
+  bottom:52px;
+  width:min(320px, calc(100% - 24px));
+  padding:12px;
+  border-radius:16px;
+  background:rgba(0,0,0,.34);
+  border:1px solid rgba(255,255,255,.12);
+  backdrop-filter: blur(10px);
+  display:none;
+  z-index:25;
+  pointer-events:none; /* key: no overlay blocking */
+}
+.focusPanel.on{display:block}
+.fpTitle{
+  font-weight:950;
+  letter-spacing:.16em;
+  font-size:11px;
+  opacity:.72;
+  margin-bottom:8px;
+}
+.fpRow{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  font-size:13px;
+  font-weight:900;
+  margin-top:6px;
+}
+.fpL{
+  opacity:.60;
+  letter-spacing:.10em;
+  font-size:10px;
+  text-transform:uppercase;
+}
+
+/* Hint – also does not block touches */
 .hint{
   position:absolute;
   left:12px;
@@ -208,17 +272,15 @@ canvas#c{
   border:1px solid rgba(255,255,255,.10);
   background:rgba(0,0,0,.28);
   backdrop-filter: blur(10px);
-  font:800 12px system-ui,-apple-system;
+  font:900 12px system-ui,-apple-system;
   letter-spacing:.06em;
   opacity:.88;
+  z-index:22;
+  pointer-events:none; /* key */
 }
-.hint span{opacity:.62;font-weight:900}
 
-/* Side panel */
-.side{
-  display:flex;
-  min-height:0;
-}
+/* Side log */
+.side{min-height:0;display:flex}
 .panel{
   background:var(--panel);
   border:1px solid var(--stroke);
@@ -235,13 +297,9 @@ canvas#c{
   font-size:11px;
   letter-spacing:.18em;
   opacity:.72;
-  font-weight:900;
+  font-weight:950;
 }
-.log{
-  overflow:auto;
-  padding-right:6px;
-  max-height:100%;
-}
+.log{overflow:auto; padding-right:6px; max-height:100%}
 
 /* Toast */
 .toast{
@@ -249,11 +307,11 @@ canvas#c{
   top: calc(14px + env(safe-area-inset-top));
   left:50%;
   transform:translateX(-50%);
-  background:rgba(0,0,0,.45);
+  background:rgba(0,0,0,.52);
   border:1px solid rgba(255,255,255,.14);
   backdrop-filter:blur(10px);
   color:rgba(233,238,247,.95);
-  font:900 12px system-ui,-apple-system;
+  font:950 12px system-ui,-apple-system;
   letter-spacing:.14em;
   padding:10px 14px;
   border-radius:14px;
@@ -269,60 +327,23 @@ canvas#c{
 }
 .toast.on{opacity:1; transform:translateX(-50%) translateY(2px);}
 
-/* Focus panel */
-.focusPanel{
-  position:absolute;
-  right:12px;
-  bottom:12px;
-  width:min(340px, 92vw);
-  background:rgba(0,0,0,.35);
-  border:1px solid rgba(255,255,255,.12);
-  backdrop-filter: blur(10px);
-  border-radius:16px;
-  padding:12px;
-  color:rgba(233,238,247,.92);
-  display:none;
-  z-index:50;
-}
-.focusPanel.on{display:block}
-
-/* MOBILE: restore the earlier clean mobile layout */
+/* Mobile */
 @media (max-width: 980px){
-  body{ overflow:auto; }
+  body{overflow:hidden;} /* keep it app-like */
 
-  .topbar{
-    grid-template-columns: 1fr;
-    gap:10px;
-  }
+  .main{grid-template-columns: 1fr;}
+  .side{display:none;}
 
-  /* BIG IMPORTANT FIX: if some giant coin image exists, hide it on mobile */
-  img:not(#logoImg){
-    display:none !important;
-  }
+  .miniLine{display:none;} /* cleaner mobile */
 
-  .stats{
-    display:grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap:10px;
-  }
-  .stat{ min-width:0; }
-
-  .controls{
-    display:grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap:10px;
-  }
-  .btn{ width:100%; }
-
-  .main{
-    grid-template-columns: 1fr;
-  }
-
-  /* Hide log on mobile so sim gets the screen (like earlier) */
-  .side{ display:none; }
-
-  .sim{
-    height: min(74vh, 820px);
+  /* Make the sim full height on iPhone */
+  .simShell{
+    height: calc(100vh - 110px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     min-height: 560px;
+  }
+
+  /* HUD stays compact and readable */
+  .hud{
+    width:min(420px, calc(100% - 24px));
   }
 }
