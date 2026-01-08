@@ -1,128 +1,402 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, viewport-fit=cover"
-  />
-  <title>Worm Colony • $WORM</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <title>Worm Colony</title>
+  <style>
+    :root{
+      --bg:#05060a;
+      --panel:rgba(0,0,0,.38);
+      --stroke:rgba(255,255,255,.12);
+      --text:rgba(233,238,247,.92);
+      --mut:rgba(255,77,255,.18);
+      --good:rgba(109,255,181,.18);
+      --blue:rgba(100,169,255,.18);
+      --gold:rgba(255,212,86,.18);
+      --neon:rgba(120,255,210,.30);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:radial-gradient(1200px 700px at 65% 25%, rgba(120,255,210,.06), transparent 60%),
+                 radial-gradient(900px 600px at 20% 70%, rgba(160,100,255,.06), transparent 60%),
+                 var(--bg);
+      color:var(--text);
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      overflow:hidden;
+    }
 
-  <!-- CSS -->
-  <link rel="stylesheet" href="style.css" />
+    .app{
+      height:100%;
+      display:grid;
+      grid-template-rows:auto 1fr;
+      gap:12px;
+      padding:12px;
+    }
 
-  <!-- Font (optional, safe on mobile) -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
-    rel="stylesheet"
-  />
+    /* Top bar */
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      background:var(--panel);
+      border:1px solid var(--stroke);
+      border-radius:18px;
+      padding:10px 12px;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 180px;
+    }
+
+    .logoWrap{
+      width:44px;height:44px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(0,0,0,.25);
+      display:grid;
+      place-items:center;
+      overflow:hidden;
+    }
+    #logoImg{
+      width:38px;height:38px;
+      object-fit:contain;
+      filter: drop-shadow(0 0 12px rgba(120,255,210,.22));
+    }
+
+    .title{
+      line-height:1.05;
+    }
+    .title .name{
+      font-weight:900;
+      letter-spacing:.02em;
+      font-size:14px;
+    }
+    .title .ticker{
+      font-weight:800;
+      letter-spacing:.18em;
+      font-size:11px;
+      opacity:.68;
+      margin-top:3px;
+    }
+
+    .stats{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:center;
+    }
+    .stat{
+      padding:8px 10px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.18);
+      min-width:108px;
+    }
+    .stat .k{
+      font-size:10px;
+      letter-spacing:.16em;
+      opacity:.60;
+      font-weight:800;
+    }
+    .stat .v{
+      margin-top:4px;
+      font-weight:900;
+      letter-spacing:.02em;
+    }
+
+    .controls{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      min-width: 220px;
+    }
+
+    .btn{
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(0,0,0,.22);
+      color:rgba(233,238,247,.88);
+      border-radius:14px;
+      padding:10px 12px;
+      font:800 12px system-ui,-apple-system;
+      letter-spacing:.08em;
+      cursor:pointer;
+      backdrop-filter: blur(10px);
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:hover{border-color:rgba(255,255,255,.22)}
+    .btn.primary{
+      border-color:rgba(120,255,210,.28);
+      box-shadow: 0 0 0 1px rgba(120,255,210,.12) inset;
+    }
+
+    /* Main layout */
+    .main{
+      height:100%;
+      display:grid;
+      grid-template-columns: 1fr 360px;
+      gap:12px;
+      min-height:0;
+    }
+
+    .sim{
+      position:relative;
+      background:rgba(0,0,0,.18);
+      border:1px solid var(--stroke);
+      border-radius:18px;
+      overflow:hidden;
+      min-height:0;
+    }
+    canvas#c{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      display:block;
+    }
+
+    .hint{
+      position:absolute;
+      left:12px;
+      bottom:12px;
+      padding:10px 12px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.26);
+      backdrop-filter: blur(10px);
+      font:700 12px system-ui,-apple-system;
+      letter-spacing:.06em;
+      opacity:.85;
+    }
+    .hint span{opacity:.65;font-weight:800}
+
+    .side{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      min-height:0;
+    }
+
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--stroke);
+      border-radius:18px;
+      padding:12px;
+      backdrop-filter: blur(10px);
+      min-height:0;
+    }
+
+    .panel h3{
+      margin:0 0 10px 0;
+      font-size:11px;
+      letter-spacing:.18em;
+      opacity:.70;
+      font-weight:900;
+    }
+
+    .log{
+      overflow:auto;
+      padding-right:6px;
+      max-height: 100%;
+    }
+
+    .logItem{
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.18);
+      border-radius:14px;
+      padding:10px;
+      margin-bottom:10px;
+      position:relative;
+    }
+    .logTop{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:11px;
+      letter-spacing:.10em;
+      opacity:.75;
+      font-weight:800;
+    }
+    .pill{
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      font-size:10px;
+      letter-spacing:.14em;
+      font-weight:900;
+      text-transform:uppercase;
+    }
+    .pill.mut{border-color:rgba(255,77,255,.28);background:var(--mut)}
+    .pill.split{border-color:rgba(109,255,181,.30);background:var(--good)}
+    .pill.mil{border-color:rgba(100,169,255,.30);background:var(--blue)}
+    .pill.boss{border-color:rgba(255,212,86,.30);background:var(--gold)}
+    .logBody{
+      margin-top:6px;
+      font-size:13px;
+      opacity:.92;
+      font-weight:650;
+      letter-spacing:.01em;
+    }
+    .count{
+      position:absolute;
+      right:10px;
+      top:10px;
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      font-size:11px;
+      color:rgba(233,238,247,.78);
+      font-weight:900;
+      letter-spacing:.08em;
+    }
+
+    /* Toast */
+    .toast{
+      position:fixed;
+      top:16px;
+      left:50%;
+      transform:translateX(-50%);
+      background:rgba(0,0,0,.45);
+      border:1px solid rgba(255,255,255,.14);
+      backdrop-filter:blur(10px);
+      color:rgba(233,238,247,.95);
+      font:900 12px system-ui,-apple-system;
+      letter-spacing:.14em;
+      padding:10px 14px;
+      border-radius:14px;
+      opacity:0;
+      pointer-events:none;
+      z-index:9999;
+      transition:.25s ease;
+      max-width:min(92vw,620px);
+      text-align:center;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .toast.on{opacity:1; transform:translateX(-50%) translateY(2px);}
+
+    /* Focus panel */
+    .focusPanel{
+      position:absolute;
+      right:12px;
+      bottom:12px;
+      width:min(340px, 92vw);
+      background:rgba(0,0,0,.35);
+      border:1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(10px);
+      border-radius:16px;
+      padding:12px;
+      color:rgba(233,238,247,.92);
+      display:none;
+      z-index:50;
+    }
+    .focusPanel.on{display:block}
+    .fpTitle{
+      font-weight:900;
+      letter-spacing:.16em;
+      font-size:11px;
+      opacity:.72;
+      margin-bottom:8px;
+    }
+    .fpRow{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      font-size:13px;
+      margin-top:6px;
+      font-weight:800;
+    }
+    .fpLabel{
+      opacity:.58;
+      font-weight:900;
+      letter-spacing:.10em;
+      font-size:10px;
+      text-transform:uppercase;
+      margin-right:6px;
+    }
+
+    @media (max-width: 980px){
+      .main{grid-template-columns:1fr}
+      .side{display:none}
+    }
+  </style>
 </head>
 
 <body>
-  <div class="wrap">
-
-    <!-- LEFT PANEL -->
-    <div class="panel">
-
-      <!-- BRAND / STATS / CONTROLS -->
-      <div class="card">
-        <div class="header">
-          <div class="brand">
-            <img
-              src="https://i.postimg.cc/hGj8JD0V/1614F03F-52AD-453C-8DB1-09A3B29F3469.png"
-              alt="Worm Colony"
-            />
-            <div class="title">
-              <h1>Worm Colony</h1>
-              <div class="ticker">
-                <span class="pill">$WORM</span>
-                <span>LIVE COLONY</span>
-              </div>
-            </div>
-          </div>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logoWrap">
+          <img id="logoImg" alt="Worm Colony logo"
+            src="https://i.postimg.cc/hGj8JD0V/1614F03F-52AD-453C-8DB1-09A3B29F3469.png">
         </div>
-
-        <!-- STATS -->
-        <div class="stats">
-          <div class="stat">
-            <div class="k">Buyers</div>
-            <div class="v" id="buyers">0</div>
-          </div>
-          <div class="stat">
-            <div class="k">Volume</div>
-            <div class="v" id="vol">$0</div>
-          </div>
-          <div class="stat">
-            <div class="k">Market Cap</div>
-            <div class="v" id="mcap">$25,000</div>
-          </div>
-          <div class="stat">
-            <div class="k">Colonies</div>
-            <div class="v" id="cols">1</div>
-          </div>
-          <div class="stat">
-            <div class="k">Worms</div>
-            <div class="v" id="worms">0</div>
-          </div>
-          <div class="stat">
-            <div class="k">Splits</div>
-            <div class="v">Every $50k</div>
-          </div>
-        </div>
-
-        <!-- CONTROLS -->
-        <div class="controls">
-          <button class="btn primary" id="feedBtn">Sim Buy</button>
-          <button class="btn" id="smallFeed">+Small</button>
-          <button class="btn" id="bigFeed">+Big</button>
-          <button class="btn warn" id="mutateBtn">Force Mutation</button>
-          <button class="btn" id="resetBtn">Reset</button>
+        <div class="title">
+          <div class="name">Worm Colony</div>
+          <div class="ticker">$WORM</div>
         </div>
       </div>
 
-      <!-- EVENT LOG -->
-      <div class="card log">
-        <div class="logHead">
-          <div class="h">Event Log</div>
-        </div>
-        <div class="logBody" id="log">
-          Waiting for activity…
-        </div>
+      <div class="stats">
+        <div class="stat"><div class="k">BUYERS</div><div class="v" id="buyers">0</div></div>
+        <div class="stat"><div class="k">VOLUME</div><div class="v" id="vol">$0</div></div>
+        <div class="stat"><div class="k">M CAP</div><div class="v" id="mcap">$0</div></div>
+        <div class="stat"><div class="k">COLONIES</div><div class="v" id="cols">1</div></div>
+        <div class="stat"><div class="k">WORMS</div><div class="v" id="worms">0</div></div>
       </div>
 
+      <div class="controls">
+        <button id="feedBtn" class="btn primary">Feed</button>
+        <button id="smallFeed" class="btn">Small Buy</button>
+        <button id="bigFeed" class="btn">Whale Buy</button>
+        <button id="sellBtn" class="btn">Sell-off</button>
+        <button id="stormBtn" class="btn">Volume Storm</button>
+        <button id="mutateBtn" class="btn">Mutate</button>
+        <button id="focusBtn" class="btn">Focus: Off</button>
+        <button id="zoomInBtn" class="btn">Zoom +</button>
+        <button id="zoomOutBtn" class="btn">Zoom −</button>
+        <button id="captureBtn" class="btn primary">Capture</button>
+        <button id="resetBtn" class="btn">Reset</button>
+      </div>
     </div>
 
-    <!-- RIGHT STAGE -->
-    <div class="stage">
-      <div class="card" style="display:flex;flex-direction:column;min-height:0;">
-        <div class="stageTop">
-          <div class="hint">
-            Tap a colony to select it. <b>New colonies spawn every $50k MC</b>.
-          </div>
-          <div class="ticker">
-            <span class="pill">$WORM</span>
-            <span>SIMULATION</span>
-          </div>
+    <div class="main">
+      <div class="sim">
+        <canvas id="c"></canvas>
+
+        <div class="focusPanel" id="focusPanel">
+          <div class="fpTitle">COLONY FOCUS</div>
+          <div class="fpRow"><span><span class="fpLabel">Colony</span></span><span id="fpSelected">#1</span></div>
+          <div class="fpRow"><span><span class="fpLabel">DNA</span></span><span id="fpDNA">—</span></div>
+          <div class="fpRow"><span><span class="fpLabel">Biome</span></span><span id="fpBiome">—</span></div>
+          <div class="fpRow"><span><span class="fpLabel">Style</span></span><span id="fpStyle">—</span></div>
         </div>
 
-        <div class="canvasWrap">
-          <canvas id="c"></canvas>
+        <div class="hint"><span>Tap</span> colonies • <span>Drag</span> pan • <span>Pinch</span> zoom • <span>Double tap</span> center</div>
+      </div>
 
-          <!-- watermark -->
-          <div class="watermark">
-            <img
-              src="https://i.postimg.cc/hGj8JD0V/1614F03F-52AD-453C-8DB1-09A3B29F3469.png"
-              alt=""
-            />
-            <span>WORM COLONY • $WORM</span>
-          </div>
+      <div class="side">
+        <div class="panel" style="flex:1; min-height:0;">
+          <h3>Mutation Log</h3>
+          <div id="log" class="log"></div>
         </div>
       </div>
     </div>
 
+    <div id="toast" class="toast"></div>
   </div>
 
-  <!-- ✅ JS LOADED AFTER DOM -->
-  <script src="script.js" defer></script>
+  <script src="script.js"></script>
 </body>
 </html>
