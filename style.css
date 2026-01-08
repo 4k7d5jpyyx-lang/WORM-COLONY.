@@ -23,7 +23,6 @@ body{
   overflow:hidden;
 }
 
-/* App layout: header + full-height sim */
 .app{
   height:100%;
   display:flex;
@@ -34,10 +33,9 @@ body{
   padding-bottom: calc(12px + env(safe-area-inset-bottom));
 }
 
-/* ---------- TOP BAR (desktop/tablet) ---------- */
 .topbar{
   display:grid;
-  grid-template-columns: 260px 1fr auto;
+  grid-template-columns: 240px 1fr auto;
   align-items:center;
   gap:12px;
   background:var(--panel);
@@ -47,13 +45,13 @@ body{
   backdrop-filter: blur(10px);
 }
 
-/* Brand */
 .brand{
   display:flex;
   align-items:center;
   gap:10px;
   min-width:0;
 }
+
 .logoWrap{
   width:46px;height:46px;
   border-radius:14px;
@@ -64,11 +62,13 @@ body{
   overflow:hidden;
   flex:0 0 auto;
 }
+
 #logoImg{
   width:40px;height:40px;
   object-fit:contain;
   filter: drop-shadow(0 0 12px rgba(120,255,210,.22));
 }
+
 .title{line-height:1.05; min-width:0}
 .title .name{
   font-weight:900;
@@ -86,13 +86,11 @@ body{
   margin-top:3px;
 }
 
-/* Stats */
 .stats{
   display:flex;
   gap:10px;
   flex-wrap:wrap;
   justify-content:center;
-  min-width:0;
 }
 .stat{
   padding:8px 10px;
@@ -113,7 +111,6 @@ body{
   letter-spacing:.02em;
 }
 
-/* Controls */
 .controls{
   display:flex;
   gap:8px;
@@ -121,6 +118,7 @@ body{
   justify-content:flex-end;
   align-items:center;
 }
+
 .btn{
   border:1px solid rgba(255,255,255,.14);
   background:rgba(0,0,0,.22);
@@ -141,7 +139,6 @@ body{
   box-shadow: 0 0 0 1px rgba(120,255,210,.12) inset;
 }
 
-/* ---------- MAIN ---------- */
 .main{
   flex:1;
   min-height:0;
@@ -167,7 +164,6 @@ canvas#c{
   display:block;
 }
 
-/* Hint bar */
 .hint{
   position:absolute;
   left:12px;
@@ -184,13 +180,7 @@ canvas#c{
 }
 .hint span{opacity:.65;font-weight:800}
 
-/* Side log */
-.side{
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-  min-height:0;
-}
+.side{display:flex; min-height:0}
 .panel{
   background:var(--panel);
   border:1px solid var(--stroke);
@@ -209,64 +199,8 @@ canvas#c{
   opacity:.70;
   font-weight:900;
 }
-.log{
-  overflow:auto;
-  padding-right:6px;
-  max-height: 100%;
-}
-.logItem{
-  border:1px solid rgba(255,255,255,.10);
-  background:rgba(0,0,0,.18);
-  border-radius:14px;
-  padding:10px;
-  margin-bottom:10px;
-  position:relative;
-}
-.logTop{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  font-size:11px;
-  letter-spacing:.10em;
-  opacity:.75;
-  font-weight:800;
-}
-.pill{
-  padding:4px 8px;
-  border-radius:999px;
-  border:1px solid rgba(255,255,255,.14);
-  background:rgba(255,255,255,.06);
-  font-size:10px;
-  letter-spacing:.14em;
-  font-weight:900;
-  text-transform:uppercase;
-}
-.pill.mut{border-color:rgba(255,77,255,.28);background:var(--mut)}
-.pill.split{border-color:rgba(109,255,181,.30);background:var(--good)}
-.pill.mil{border-color:rgba(100,169,255,.30);background:var(--blue)}
-.pill.boss{border-color:rgba(255,212,86,.30);background:var(--gold)}
-.logBody{
-  margin-top:6px;
-  font-size:13px;
-  opacity:.92;
-  font-weight:650;
-  letter-spacing:.01em;
-}
-.count{
-  position:absolute;
-  right:10px;
-  top:10px;
-  padding:3px 8px;
-  border-radius:999px;
-  border:1px solid rgba(255,255,255,.14);
-  background:rgba(255,255,255,.06);
-  font-size:11px;
-  color:rgba(233,238,247,.78);
-  font-weight:900;
-  letter-spacing:.08em;
-}
+.log{overflow:auto; padding-right:6px; max-height:100%}
 
-/* Toast */
 .toast{
   position:fixed;
   top: calc(14px + env(safe-area-inset-top));
@@ -292,91 +226,32 @@ canvas#c{
 }
 .toast.on{opacity:1; transform:translateX(-50%) translateY(2px);}
 
-/* Focus panel */
-.focusPanel{
-  position:absolute;
-  right:12px;
-  bottom:12px;
-  width:min(340px, 92vw);
-  background:rgba(0,0,0,.35);
-  border:1px solid rgba(255,255,255,.12);
-  backdrop-filter: blur(10px);
-  border-radius:16px;
-  padding:12px;
-  color:rgba(233,238,247,.92);
-  display:none;
-  z-index:50;
-}
-.focusPanel.on{display:block}
-.fpTitle{
-  font-weight:900;
-  letter-spacing:.16em;
-  font-size:11px;
-  opacity:.72;
-  margin-bottom:8px;
-}
-.fpRow{
-  display:flex;
-  justify-content:space-between;
-  gap:10px;
-  font-size:13px;
-  margin-top:6px;
-  font-weight:800;
-}
-.fpLabel{
-  opacity:.58;
-  font-weight:900;
-  letter-spacing:.10em;
-  font-size:10px;
-  text-transform:uppercase;
-  margin-right:6px;
-}
-
-/* ---------- MOBILE (restore the earlier clean look + big sim) ---------- */
+/* Mobile */
 @media (max-width: 980px){
-  body{ overflow:auto; }           /* allow page scroll on iPhone */
-  .app{ min-height:100%; }         /* allow content to extend */
-  .main{
-    grid-template-columns: 1fr;
-  }
+  body{ overflow:auto; }
+  .app{ min-height:100%; }
+
+  .main{ grid-template-columns: 1fr; }
   .side{ display:none; }
 
-  .topbar{
-    grid-template-columns: 1fr;
-    gap:10px;
-  }
+  .topbar{ grid-template-columns: 1fr; gap:10px; }
 
-  .brand{
-    justify-content:flex-start;
-  }
-
-  /* stats become a clean 2x grid */
   .stats{
     display:grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap:10px;
-    justify-content:stretch;
   }
   .stat{ min-width:0; }
 
-  /* controls become a nice 2-col grid (no off-screen buttons) */
   .controls{
     display:grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap:10px;
-    justify-content:stretch;
   }
-  .btn{ width:100%; justify-content:center; }
+  .btn{ width:100%; }
 
-  /* make sim take up MOST of the page like before */
   .sim{
-    height: min(70vh, 720px);
-    min-height: 520px;
-  }
-
-  /* hint stays inside bottom */
-  .hint{
-    left:10px; right:10px; bottom:10px;
-    font-size:12px;
+    height: min(72vh, 760px);
+    min-height: 560px;
   }
 }
