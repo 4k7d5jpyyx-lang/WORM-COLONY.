@@ -4,7 +4,19 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
   <title>Worm Colony</title>
-  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Primary stylesheet (MUST exist as /styles.css beside index.html) -->
+  <link rel="stylesheet" href="./styles.css?v=7" />
+
+  <!-- Failsafe: if CSS doesn't load, still not broken -->
+  <style>
+    body{margin:0;background:#05060a;color:rgba(233,238,247,.92);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+    .app{padding:12px}
+    .topbar,.sim,.panel{background:rgba(0,0,0,.38);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:12px}
+    .main{display:grid;gap:12px}
+    .sim{position:relative;height:70vh;min-height:520px;overflow:hidden}
+    canvas{position:absolute;inset:0;width:100%;height:100%}
+  </style>
 </head>
 
 <body>
@@ -70,6 +82,6 @@
     <div id="toast" class="toast"></div>
   </div>
 
-  <script src="script.js"></script>
+  <script src="./script.js?v=7"></script>
 </body>
 </html>
