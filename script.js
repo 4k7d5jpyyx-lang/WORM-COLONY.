@@ -1,13 +1,13 @@
 /* =========================
-   WORM COLONY — script.js (FINISHED PASTE-READY)
-   ✅ Irregular blobs + limb protrusions (NOT circles)
-   ✅ Territory warps (feed/volume/mutation storm)
-   ✅ Boss worm (rare, trail, pulses, big shockwaves)
-   ✅ Bridges/tunnels on colony spawn + worm travel
-   ✅ Biome zones + behavioral influence
-   ✅ Heatmap density glow
-   ✅ Minimap (tap to jump + viewport hint)
-   ✅ Audio toggle (auto-adds button if missing)
+   WORM COLONY — script.js (FINISHED + 10% POLISH ++)
+   Paste-ready. Replaces your entire script.js.
+
+   Added per your request:
+   ✅ 10% “polish” cinematic milestones (flash + slow-mo + eruption + banner)
+   ✅ More diverse worm colors (palette per colony + per-worm hue drift)
+   ✅ Worms move in different directions (CW/CCW + drift bias + lane offset)
+   ✅ Stronger, prettier auras around colonies (biome aura + pulse + warp aura)
+   ✅ Keeps: irregular colony shapes + limbs + bridges + boss worm + minimap + heatmap + log cap/merge
    ========================= */
 
 (() => {
@@ -30,13 +30,16 @@
   const btnMutate = el("mutateBtn");
   const btnReset = el("resetBtn");
 
-  // ---------- Utilities ----------
+  // ---------- Utils ----------
   const TAU = Math.PI * 2;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
   const rand = (a = 0, b = 1) => a + Math.random() * (b - a);
   const randi = (a, b) => Math.floor(rand(a, b + 1));
   const hypot = Math.hypot;
+
+  const hsl = (h, s, l, a = 1) => `hsla(${((h % 360) + 360) % 360}, ${s}%, ${l}%, ${a})`;
+  const nowStr = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   function fmtUSD(n) {
     const abs = Math.abs(n);
@@ -45,33 +48,34 @@
     if (abs >= 1e3) return `$${Math.round(n).toLocaleString()}`;
     return `$${Math.round(n)}`;
   }
-  const hsl = (h, s, l, a = 1) => `hsla(${h}, ${s}%, ${l}%, ${a})`;
-  const nowStr = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-  // ---------- SPICE TUNING ----------
+  // ---------- SPICE ----------
   const SPICE = {
-    // warps decay (seconds)
     feedWarpSecs: 6.5,
     volWarpSecs: 10,
     mutationStormSecs: 8,
 
-    // boss worm
-    bossChancePerBuy: 0.065, // ~6.5% chance each buy click
-    bossMinCooldown: 18,     // sec cooldown
+    bossChancePerBuy: 0.065,
+    bossMinCooldown: 18,
     bossPulseEvery: 2.4,
     bossTrailLen: 22,
 
-    // bridges
     bridgeDrawWidth: 2.2,
-    bridgeTravelChance: 0.0045, // per worm per sec
+    bridgeTravelChance: 0.0045,
 
-    // minimap
     minimapSize: 132,
     minimapPad: 14,
 
-    // heatmap
     heatDotR: 14,
-    heatAlpha: 0.035
+    heatAlpha: 0.035,
+
+    // cinematic
+    slowMoSecs: 1.05,
+    slowMoFactor: 0.38,
+    flashMax: 0.55,
+    vignettePunchMax: 0.22,
+    bannerSecs: 2.2,
+    eruptionCount: 18
   };
 
   // ---------- Log (cap + merge spam) ----------
@@ -134,6 +138,7 @@
       type === "split" ? "SPLIT" :
       type === "milestone" ? "MILESTONE" :
       type === "boss" ? "BOSS" : "INFO";
+
     pill.style.display = "inline-block";
     pill.style.padding = "4px 8px";
     pill.style.borderRadius = "999px";
@@ -172,9 +177,20 @@
     while (elLog.children.length > MAX_LOG_ITEMS) elLog.removeChild(elLog.lastElementChild);
   }
 
+  // ---------- Resize ----------
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+    canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  const ro = new ResizeObserver(resize);
+  ro.observe(canvas);
+  window.addEventListener("resize", resize);
+
   // ---------- Camera ----------
   const cam = { x: 0, y: 0, zoom: 1, minZoom: 0.65, maxZoom: 2.4 };
-
   function screenToWorld(sx, sy) {
     const r = canvas.getBoundingClientRect();
     let x = sx - r.left;
@@ -190,30 +206,17 @@
     return { x, y };
   }
 
-  // ---------- Resize ----------
-  function resize() {
-    const rect = canvas.getBoundingClientRect();
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    canvas.width = Math.max(1, Math.floor(rect.width * dpr));
-    canvas.height = Math.max(1, Math.floor(rect.height * dpr));
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-  const ro = new ResizeObserver(resize);
-  ro.observe(canvas);
-  window.addEventListener("resize", resize);
-
-  // ---------- Audio (toggle) ----------
+  // ---------- Audio toggle ----------
   let audioCtx = null;
   let audioMuted = true;
 
   function ensureAudio() {
     if (audioCtx) return;
-    try {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    } catch (e) {}
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (e) {}
   }
 
-  function beep(type = "click") {
+  function beep(kind = "click") {
     if (audioMuted) return;
     ensureAudio();
     if (!audioCtx) return;
@@ -223,9 +226,10 @@
     const g = audioCtx.createGain();
 
     let freq = 220, dur = 0.08, gain = 0.06;
-    if (type === "shock") { freq = 70;  dur = 0.12; gain = 0.10; }
-    if (type === "mut")   { freq = 520; dur = 0.10; gain = 0.07; }
-    if (type === "boss")  { freq = 110; dur = 0.18; gain = 0.12; }
+    if (kind === "shock") { freq = 70;  dur = 0.12; gain = 0.10; }
+    if (kind === "mut")   { freq = 520; dur = 0.10; gain = 0.07; }
+    if (kind === "boss")  { freq = 110; dur = 0.18; gain = 0.12; }
+    if (kind === "mil")   { freq = 240; dur = 0.14; gain = 0.10; }
 
     o.type = "sine";
     o.frequency.setValueAtTime(freq, t0);
@@ -264,7 +268,7 @@
 
   const audioBtn = addAudioToggleIfMissing();
   if (audioBtn) {
-    audioBtn.addEventListener("click", async () => {
+    audioBtn.addEventListener("click", () => {
       ensureAudio();
       audioMuted = !audioMuted;
       audioBtn.textContent = audioMuted ? "Audio: Off" : "Audio: On";
@@ -292,12 +296,23 @@
     const base = DNA_POOL[randi(0, DNA_POOL.length - 1)];
     return {
       name: base.name,
-      chaos: clamp(base.chaos + rand(-0.08, 0.08), 0.15, 1.0),
-      speed: clamp(base.speed + rand(-0.10, 0.12), 0.55, 1.25),
-      temper: clamp(base.temper + rand(-0.10, 0.10), 0.10, 0.95),
-      hueA: randi(145, 165),
-      hueB: randi(195, 220)
+      chaos: clamp(base.chaos + rand(-0.10, 0.10), 0.15, 1.0),
+      speed: clamp(base.speed + rand(-0.12, 0.14), 0.55, 1.35),
+      temper: clamp(base.temper + rand(-0.12, 0.12), 0.10, 0.95)
     };
+  }
+
+  // ---------- Color Palette per colony (more diverse) ----------
+  function makePalette(biomeHue) {
+    // 5 neon-ish anchors around biome hue + some contrasting hues
+    const h0 = biomeHue + rand(-18, 18);
+    return [
+      h0,
+      h0 + 28 + rand(-8, 8),
+      h0 + 160 + rand(-12, 12),
+      h0 + 205 + rand(-12, 12),
+      h0 + 320 + rand(-12, 12)
+    ].map(h => ((h % 360) + 360) % 360);
   }
 
   // ---------- Blob + Limbs ----------
@@ -340,14 +355,13 @@
     const s = globalLimbStrength(mcap);
     const bias = 0.85 + col.blobSeed2 * 0.25;
     col.limbCount = Math.min(6, Math.max(0, Math.floor(g * bias)));
-    col.limbStrength = clamp(s * bias, 0, 1.15);
+    col.limbStrength = clamp(s * bias, 0, 1.20);
   }
 
   function blobMul(col, ang, t) {
     const s1 = col.blobSeed1, s2 = col.blobSeed2, s3 = col.blobSeed3;
-
     const warp = clamp(col.warpFeed + col.warpVol + col.warpStorm, 0, 2.2);
-    const amp = 0.25 + warp * 0.22;
+    const amp = 0.26 + warp * 0.24;
 
     const base =
       smoothNoise1(ang * (2.0 + s1) + t * (0.25 + s2)) * 0.55 +
@@ -362,7 +376,7 @@
       for (let i = 0; i < L; i++) {
         const la = col.limbAngles[i];
         const width = col.limbWidths[i];
-        const height = col.limbHeights[i] * (1.0 + warp * 0.35);
+        const height = col.limbHeights[i] * (1.0 + warp * 0.40);
         const d = angDist(ang, la);
         const bulge = Math.exp(-(d * d) / (2 * width * width));
         mul += bulge * ls * height;
@@ -370,7 +384,7 @@
       mul *= 1.0 + Math.sin(t * (0.6 + col.limbStyle) + s2 * 3.0) * 0.02 * col.limbStrength;
     }
 
-    return clamp(mul, 0.60, 1.70);
+    return clamp(mul, 0.58, 1.75);
   }
 
   // ---------- State ----------
@@ -390,26 +404,40 @@
     shockwaves: [],
     bridges: [],
 
+    // cinematic
+    slowMoT: 0,
+    flashA: 0,
+    vignettePunch: 0,
+    bannerT: 0,
+    bannerText: "",
+    eruptions: [],
+
+    // sim time
     t: 0,
     nextSplitAt: SPLIT_STEP_MC,
 
     lastMutationAt: performance.now(),
-    lastVol: 0,
-    lastMcap: START_MC,
-
     bossCooldown: 0
   };
 
   // ---------- Builders ----------
   function makeWorm(col, idx, opts = {}) {
-    const segCount = opts.boss ? randi(44, 62) : randi(28, 44);
-    const segLen = opts.boss ? rand(7.8, 10.2) : rand(6.2, 8.6);
-    const baseR  = opts.boss ? rand(18, 26) : rand(12, 20);
-    const hue = opts.boss ? 52 : (Math.random() < 0.5 ? col.dna.hueA : col.dna.hueB);
+    const segCount = opts.boss ? randi(46, 66) : randi(26, 46);
+    const segLen = opts.boss ? rand(7.9, 10.6) : rand(6.0, 9.0);
+    const baseR  = opts.boss ? rand(18, 26) : rand(11, 19);
+
+    // Diverse worm colors:
+    // pick from colony palette + add slight per-worm drift
+    const huePick = col.palette[randi(0, col.palette.length - 1)];
+    const hue = opts.boss ? 52 : (huePick + rand(-12, 12));
 
     const head = { x: col.cx + rand(-30, 30), y: col.cy + rand(-30, 30) };
     const pts = [];
     for (let i = 0; i < segCount; i++) pts.push({ x: head.x, y: head.y });
+
+    // Different directions + lanes:
+    const orbitDir = Math.random() < 0.5 ? -1 : 1;  // CW / CCW
+    const lane = rand(-1, 1);                       // lane offset to avoid all hugging same ring
 
     return {
       id: `${col.id}-${idx}-${Math.random().toString(16).slice(2, 6)}`,
@@ -417,14 +445,22 @@
       segLen,
       baseR,
       hue,
+      hueDrift: rand(-18, 18),     // slow drift over time
+      sat: rand(82, 98),
+      lum: rand(52, 64),
+
       phase: rand(0, 999),
       drift: { x: rand(-1, 1), y: rand(-1, 1) },
-      energy: opts.boss ? rand(0.75, 1.0) : rand(0.35, 0.95),
+      energy: opts.boss ? rand(0.80, 1.0) : rand(0.30, 0.98),
       age: 0,
-      mutations: 0,
 
+      // steering
       steer: { x: rand(-1, 1), y: rand(-1, 1) },
       steerT: rand(0.15, 1.0),
+
+      // direction + lane
+      orbitDir,
+      lane,
 
       boss: !!opts.boss,
       bossPulseT: rand(0.4, 1.2),
@@ -435,14 +471,16 @@
   function makeColony(id, cx, cy) {
     const dna = pickDNA();
     const biome = BIOMES[randi(0, BIOMES.length - 1)];
+    const palette = makePalette(biome.hue);
 
     const col = {
       id, cx, cy,
       dna, biome,
+      palette,
+
       worms: [],
       radius: rand(135, 190),
       badgePulse: 0,
-      mutations: 0,
 
       blobSeed1: rand(0.2, 1.2),
       blobSeed2: rand(0.2, 1.2),
@@ -453,6 +491,10 @@
       warpVol: 0,
       warpStorm: 0,
 
+      // aura pulse
+      auraPhase: rand(0, 999),
+
+      // limbs
       limbStyle: rand(0.2, 1.0),
       limbCount: 0,
       limbStrength: 0,
@@ -477,7 +519,7 @@
       a: fromId,
       b: toId,
       prog: 0,
-      hue: 175 + rand(-18, 18)
+      hue: 175 + rand(-24, 24)
     });
   }
 
@@ -491,6 +533,46 @@
       width: rand(2.5, 4.2) * (0.8 + 0.7 * strength)
     });
     beep("shock");
+  }
+
+  // ---------- Cinematic polish ----------
+  function startMilestoneCinematic(text, fromCol, toCol) {
+    state.slowMoT = SPICE.slowMoSecs;
+    state.flashA = Math.max(state.flashA, SPICE.flashMax);
+    state.vignettePunch = Math.max(state.vignettePunch, SPICE.vignettePunchMax);
+
+    state.bannerT = SPICE.bannerSecs;
+    state.bannerText = text;
+
+    state.eruptions.length = 0;
+    if (fromCol && toCol) {
+      const sx = fromCol.cx, sy = fromCol.cy;
+      const ex = toCol.cx, ey = toCol.cy;
+      const dx = ex - sx, dy = ey - sy;
+      const len = Math.max(1e-6, hypot(dx, dy));
+      const nx = -dy / len, ny = dx / len;
+
+      for (let i = 0; i < SPICE.eruptionCount; i++) {
+        const jitter = rand(-55, 55);
+        const offx = nx * jitter;
+        const offy = ny * jitter;
+
+        state.eruptions.push({
+          sx: sx + offx * 0.25,
+          sy: sy + offy * 0.25,
+          ex: ex + offx,
+          ey: ey + offy,
+          t: rand(0, 0.18),
+          spd: rand(1.0, 2.2),
+          hue: 165 + rand(-40, 40),
+          a: rand(0.35, 0.75),
+          w: rand(1.1, 2.8)
+        });
+      }
+    }
+
+    beep("mil");
+    logEvent("milestone", text);
   }
 
   // ---------- Selecting + picking ----------
@@ -513,7 +595,7 @@
     state.selectedColonyId = col.id;
     col.badgePulse = 1;
     logEvent("info", `Selected Colony #${col.id} • DNA: ${col.dna.name} • Biome: ${col.biome.name}`);
-    spawnShockwave(col.cx, col.cy, col.dna.hueA, 0.8);
+    spawnShockwave(col.cx, col.cy, col.palette[0], 0.8);
   }
 
   // ---------- Colony spawn milestones ----------
@@ -525,7 +607,7 @@
       const viewCx = (r.width / 2) - cam.x;
       const viewCy = (r.height / 2) - cam.y;
 
-      const dist = rand(300, 560);
+      const dist = rand(320, 580);
       const ang = rand(0, TAU);
       const cx = viewCx + Math.cos(ang) * dist;
       const cy = viewCy + Math.sin(ang) * dist;
@@ -536,33 +618,33 @@
       const parent = selectedColony() || state.colonies[0];
       addBridge(parent.id, newCol.id);
 
-      logEvent("split", `Colony #${id} founded at ${fmtUSD(state.nextSplitAt)} MC.`);
-      spawnShockwave(cx, cy, randi(150, 220), 1.2);
+      startMilestoneCinematic(`New Colony #${id} formed at ${fmtUSD(state.nextSplitAt)} MC`, parent, newCol);
+
+      spawnShockwave(cx, cy, newCol.palette[0], 1.3);
+      spawnShockwave(parent.cx, parent.cy, parent.palette[2], 1.0);
 
       state.nextSplitAt += SPLIT_STEP_MC;
     }
   }
 
   // ---------- Mutations / storms ----------
-  function triggerStorm(col) {
-    col.warpStorm = Math.min(1, col.warpStorm + 0.85);
-  }
-
   function mutateWorm(w, col) {
-    w.mutations += 1;
-    col.mutations += 1;
+    // spice: hue drift bigger for diversity
+    w.hueDrift += rand(-18, 18);
+    w.sat = clamp(w.sat + rand(-10, 10), 70, 100);
+    w.lum = clamp(w.lum + rand(-8, 8), 45, 70);
 
-    w.baseR = clamp(w.baseR * rand(0.92, 1.10), 10, 28);
-    w.segLen = clamp(w.segLen * rand(0.92, 1.08), 5.8, 10.4);
-    w.energy = clamp(w.energy + rand(-0.10, 0.16), 0.25, 1.0);
-    w.hue = (w.hue + randi(-24, 28) + 360) % 360;
+    // behavior tweak
+    w.energy = clamp(w.energy + rand(-0.12, 0.18), 0.20, 1.0);
+    w.segLen = clamp(w.segLen * rand(0.92, 1.08), 5.8, 10.8);
+    w.baseR  = clamp(w.baseR  * rand(0.92, 1.10), 10, 28);
 
-    w.steer.x = clamp(w.steer.x + rand(-0.9, 0.9), -2.0, 2.0);
-    w.steer.y = clamp(w.steer.y + rand(-0.9, 0.9), -2.0, 2.0);
-    w.steerT = rand(0.12, 0.75);
+    // direction flips sometimes
+    if (Math.random() < 0.25) w.orbitDir *= -1;
+    w.lane = clamp(w.lane + rand(-0.35, 0.35), -1.2, 1.2);
 
-    triggerStorm(col);
-    logEvent("mutation", `${Math.random() < 0.5 ? "Color shift" : "Behavior spike"} • Worm ${w.id.split("-").slice(-1)[0]} (Colony #${col.id})`);
+    col.warpStorm = Math.min(1, col.warpStorm + 0.85);
+    logEvent("mutation", `${Math.random() < 0.5 ? "Chromatic shift" : "Behavior spike"} • Colony #${col.id}`);
     beep("mut");
     spawnShockwave(col.cx, col.cy, w.hue, 1.0);
   }
@@ -595,7 +677,6 @@
     if (Math.random() > SPICE.bossChancePerBuy) return;
 
     state.bossCooldown = SPICE.bossMinCooldown;
-
     const boss = makeWorm(col, col.worms.length, { boss: true });
     col.worms.unshift(boss);
 
@@ -613,7 +694,7 @@
     col.warpVol = Math.min(1, col.warpVol + 0.65 * intensity);
   }
 
-  // ---------- Buy simulation (you’ll later replace with real DEX data) ----------
+  // ---------- Buy simulation ----------
   function simBuy(mult = 1) {
     const buyersAdd = Math.random() < 0.75 ? 1 : 2;
     const volAdd = rand(220, 980) * mult;
@@ -629,7 +710,7 @@
     if (col) {
       triggerFeedWarp(col, 1);
       if (volAdd > 900) triggerVolWarp(col, 1);
-      spawnShockwave(col.cx, col.cy, col.dna.hueA, 0.9);
+      spawnShockwave(col.cx, col.cy, col.palette[0], 0.9);
       maybeSpawnBoss(col);
     }
 
@@ -638,14 +719,36 @@
     updateHUD();
   }
 
-  // ---------- Input (pan/zoom + minimap taps) ----------
-  canvas.style.touchAction = "none";
-  let activePointers = new Map();
-  let isPanning = false;
-  let panStart = { x: 0, y: 0, camX: 0, camY: 0 };
-  let pinchStart = null;
-  let lastTapTime = 0;
+  // ---------- Heatmap ----------
+  const heatPts = [];
+  function pushHeat(x, y, hue) {
+    heatPts.push({ x, y, hue });
+    if (heatPts.length > 1000) heatPts.splice(0, heatPts.length - 1000);
+  }
 
+  // ---------- Worm bridge travel ----------
+  function findBridgeFor(colId) {
+    const built = state.bridges.filter(b => b.prog > 0.95 && (b.a === colId || b.b === colId));
+    if (!built.length) return null;
+    return built[randi(0, built.length - 1)];
+  }
+
+  function teleportWormToColony(w, fromCol, toCol) {
+    const ang = rand(0, TAU);
+    const mul = blobMul(toCol, ang, state.t);
+    const rr = (toCol.radius * (0.50 + 0.12 * w.lane)) * mul;
+
+    const hx = toCol.cx + Math.cos(ang) * rr;
+    const hy = toCol.cy + Math.sin(ang) * rr;
+
+    for (const p of w.pts) { p.x = hx; p.y = hy; }
+    w.trail.length = 0;
+
+    spawnShockwave(hx, hy, toCol.palette[1], 1.0);
+    logEvent("info", `Worm traveled: Colony #${fromCol.id} → #${toCol.id}`);
+  }
+
+  // ---------- Minimap helpers ----------
   function minimapRect() {
     const r = canvas.getBoundingClientRect();
     const size = SPICE.minimapSize;
@@ -657,13 +760,13 @@
     if (!state.colonies.length) return null;
     let minX = 1e9, minY = 1e9, maxX = -1e9, maxY = -1e9;
     for (const c of state.colonies) {
-      const r = c.radius * 1.1;
-      minX = Math.min(minX, c.cx - r);
-      minY = Math.min(minY, c.cy - r);
-      maxX = Math.max(maxX, c.cx + r);
-      maxY = Math.max(maxY, c.cy + r);
+      const rr = c.radius * 1.1;
+      minX = Math.min(minX, c.cx - rr);
+      minY = Math.min(minY, c.cy - rr);
+      maxX = Math.max(maxX, c.cx + rr);
+      maxY = Math.max(maxY, c.cy + rr);
     }
-    const pad = 120;
+    const pad = 140;
     minX -= pad; minY -= pad; maxX += pad; maxY += pad;
     return { minX, minY, maxX, maxY };
   }
@@ -693,6 +796,14 @@
     logEvent("info", "Minimap jump.");
     return true;
   }
+
+  // ---------- Input (pan/zoom) ----------
+  canvas.style.touchAction = "none";
+  let activePointers = new Map();
+  let isPanning = false;
+  let panStart = { x: 0, y: 0, camX: 0, camY: 0 };
+  let pinchStart = null;
+  let lastTapTime = 0;
 
   canvas.addEventListener("pointerdown", (e) => {
     if (minimapTapToJump(e.clientX, e.clientY)) return;
@@ -752,7 +863,7 @@
           const r = canvas.getBoundingClientRect();
           cam.x = cam.x + ((r.width / 2) - col.cx);
           cam.y = cam.y + ((r.height / 2) - col.cy);
-          spawnShockwave(col.cx, col.cy, col.dna.hueB, 0.9);
+          spawnShockwave(col.cx, col.cy, col.palette[2], 0.9);
           logEvent("info", "Centered on selected colony.");
         }
       }
@@ -768,42 +879,31 @@
     isPanning = false;
   });
 
-  // ---------- Heatmap points ----------
-  const heatPts = [];
-  function pushHeat(x, y, hue) {
-    heatPts.push({ x, y, hue });
-    if (heatPts.length > 900) heatPts.splice(0, heatPts.length - 900);
-  }
+  // ---------- Worm movement + simulation ----------
+  function step(dtRaw) {
+    // slow-mo effect
+    const slowFactor = state.slowMoT > 0 ? SPICE.slowMoFactor : 1;
+    const dt = dtRaw * slowFactor;
 
-  // ---------- Worm bridge travel ----------
-  function findBridgeFor(colId) {
-    const built = state.bridges.filter(b => b.prog > 0.95 && (b.a === colId || b.b === colId));
-    if (!built.length) return null;
-    return built[randi(0, built.length - 1)];
-  }
-
-  function teleportWormToColony(w, fromCol, toCol) {
-    const ang = rand(0, TAU);
-    const mul = blobMul(toCol, ang, state.t);
-    const rr = (toCol.radius * 0.55) * mul;
-
-    const hx = toCol.cx + Math.cos(ang) * rr;
-    const hy = toCol.cy + Math.sin(ang) * rr;
-
-    for (const p of w.pts) { p.x = hx; p.y = hy; }
-    w.trail.length = 0;
-
-    spawnShockwave(hx, hy, toCol.dna.hueA, 1.0);
-    logEvent("info", `Worm traveled: Colony #${fromCol.id} → #${toCol.id}`);
-  }
-
-  // ---------- Simulation step ----------
-  function step(dt) {
     state.t += dt;
+
+    // cinematic timers
+    if (state.slowMoT > 0) state.slowMoT = Math.max(0, state.slowMoT - dtRaw);
+    state.flashA = Math.max(0, state.flashA - dtRaw * 1.5);
+    state.vignettePunch = Math.max(0, state.vignettePunch - dtRaw * 0.9);
+    if (state.bannerT > 0) state.bannerT = Math.max(0, state.bannerT - dtRaw);
+
+    // eruption particles
+    for (let i = state.eruptions.length - 1; i >= 0; i--) {
+      const e = state.eruptions[i];
+      e.t += dtRaw * e.spd;
+      e.a -= dtRaw * 0.45;
+      if (e.t >= 1.05 || e.a <= 0) state.eruptions.splice(i, 1);
+    }
 
     state.bossCooldown = Math.max(0, state.bossCooldown - dt);
 
-    // nutrients decay + drip
+    // nutrients: gentle decay + drip (buyers/vol/mcap)
     state.nutrients = Math.max(0, state.nutrients - 32 * dt);
     state.nutrients += (state.buyers * 0.018 + state.volume * 0.000009 + state.mcap * 0.0000045) * dt;
 
@@ -821,54 +921,31 @@
     // bridges build
     for (const b of state.bridges) b.prog = Math.min(1, b.prog + dt * 0.75);
 
-    // detect spikes
-    const dv = state.volume - state.lastVol;
-    const dmc = state.mcap - state.lastMcap;
-    state.lastVol = state.volume;
-    state.lastMcap = state.mcap;
-
-    if (dv > 2500) {
-      const col = selectedColony();
-      if (col) triggerVolWarp(col, 1);
-    }
-    if (dmc > 6000) {
-      const col = selectedColony();
-      if (col) col.warpVol = Math.min(1, col.warpVol + 0.25);
-    }
-
     // colonies update
     for (const col of state.colonies) {
       updateLimbs(col, state.mcap);
 
-      // decay warps
+      // warp decay
       col.warpFeed  = Math.max(0, col.warpFeed  - dt / SPICE.feedWarpSecs);
       col.warpVol   = Math.max(0, col.warpVol   - dt / SPICE.volWarpSecs);
       col.warpStorm = Math.max(0, col.warpStorm - dt / SPICE.mutationStormSecs);
 
       const warpSum = col.warpFeed + col.warpVol + col.warpStorm;
 
-      // radius adjusts with nutrients + warps
-      const targetR = clamp(145 + state.nutrients * 0.020 + warpSum * 12, 125, 255);
+      // radius grows with nutrients + warps
+      const targetR = clamp(145 + state.nutrients * 0.020 + warpSum * 14, 125, 270);
       col.radius = lerp(col.radius, targetR, 0.03);
 
       if (col.badgePulse > 0) col.badgePulse = Math.max(0, col.badgePulse - 1.15 * dt);
 
+      // worms
       for (const w of col.worms) {
         w.age += dt;
-
-        // steering
-        w.steerT -= dt;
-        if (w.steerT <= 0) {
-          const biomeDrift = col.biome.drift;
-          w.steerT = rand(0.12, 1.1) * lerp(1.0, 0.55, col.dna.temper) / biomeDrift;
-          w.steer.x = clamp(lerp(w.steer.x, rand(-1, 1), 0.75), -2.0, 2.0);
-          w.steer.y = clamp(lerp(w.steer.y, rand(-1, 1), 0.75), -2.0, 2.0);
-        }
 
         const pts = w.pts;
         const head = pts[0];
 
-        // heatmap
+        // heatmap point
         pushHeat(head.x, head.y, w.hue);
 
         // boss trail + pulses
@@ -883,45 +960,66 @@
           }
         }
 
-        // movement along blob boundary
+        // steering changes -> different directions overall
+        w.steerT -= dt;
+        if (w.steerT <= 0) {
+          w.steerT = rand(0.12, 1.15) * lerp(1.0, 0.55, col.dna.temper) / col.biome.drift;
+          w.steer.x = clamp(lerp(w.steer.x, rand(-1, 1), 0.75), -2.0, 2.0);
+          w.steer.y = clamp(lerp(w.steer.y, rand(-1, 1), 0.75), -2.0, 2.0);
+
+          // sometimes flip orbit direction for more chaos
+          if (!w.boss && Math.random() < 0.08 * col.dna.chaos) w.orbitDir *= -1;
+        }
+
+        // worm color drift (diverse)
+        const hueWob = Math.sin(state.t * 0.25 + w.phase) * 2.2;
+        w.hue = (w.hue + (w.hueDrift * dt * 0.02) + hueWob * dt) % 360;
+
+        // movement along irregular boundary with lanes + CW/CCW diversity
         const cx = col.cx, cy = col.cy;
         const dx0 = head.x - cx;
         const dy0 = head.y - cy;
         const ang0 = Math.atan2(dy0, dx0);
 
-        const mul = blobMul(col, ang0 + col.blobSpin * state.t * 0.35, state.t);
-        const boundary = (col.radius * 0.68) * mul;
+        const angSpin = col.blobSpin * state.t * 0.35;
+        const mul = blobMul(col, ang0 + angSpin, state.t);
+        const laneScale = 0.58 + (w.lane * 0.12); // lane pushes slightly inward/outward
+        const boundary = (col.radius * laneScale) * mul;
 
         const bx = cx + Math.cos(ang0) * boundary;
         const by = cy + Math.sin(ang0) * boundary;
 
-        const tx = -Math.sin(ang0);
-        const ty =  Math.cos(ang0);
+        // tangent (direction differs per worm)
+        const tx = -Math.sin(ang0) * w.orbitDir;
+        const ty =  Math.cos(ang0) * w.orbitDir;
 
-        const warpBoost = 1.0 + (col.warpVol * 0.7 + col.warpStorm * 0.9);
+        const warpBoost = 1.0 + (col.warpVol * 0.8 + col.warpStorm * 1.0);
         const pullToEdge = 0.62 * warpBoost;
         const slide = (0.80 + col.dna.chaos) * warpBoost;
         const steer = (0.60 + col.dna.chaos) * warpBoost;
 
         const driftRate = (0.22 + col.dna.chaos * 0.22) * col.biome.drift;
-        w.drift.x = clamp(w.drift.x + rand(-driftRate, driftRate) * dt, -2.4, 2.4);
-        w.drift.y = clamp(w.drift.y + rand(-driftRate, driftRate) * dt, -2.4, 2.4);
+        w.drift.x = clamp(w.drift.x + rand(-driftRate, driftRate) * dt, -2.8, 2.8);
+        w.drift.y = clamp(w.drift.y + rand(-driftRate, driftRate) * dt, -2.8, 2.8);
 
         const bossBoost = w.boss ? 1.55 : 1.0;
-        const spd = (46 + w.energy * 58) * col.dna.speed * bossBoost;
+        const spd = (46 + w.energy * 62) * col.dna.speed * bossBoost;
 
         const toBx = (bx - head.x);
         const toBy = (by - head.y);
 
+        // Add a small “phase push” so different worms prefer different headings even on same colony
+        const phasePush = Math.sin(state.t * 1.4 + w.phase) * 10;
+
         const vx =
           toBx * pullToEdge +
-          tx * slide * 70 +
+          tx * slide * (70 + phasePush) +
           w.steer.x * steer * 35 +
           w.drift.x * 12;
 
         const vy =
           toBy * pullToEdge +
-          ty * slide * 70 +
+          ty * slide * (70 - phasePush) +
           w.steer.y * steer * 35 +
           w.drift.y * 12;
 
@@ -933,10 +1031,10 @@
         const ddx = head.x - cx;
         const ddy = head.y - cy;
         const d = hypot(ddx, ddy);
-        const outer = col.radius * (1.28 + col.warpStorm * 0.12);
+        const outer = col.radius * (1.34 + col.warpStorm * 0.12);
         if (d > outer) {
-          head.x = lerp(head.x, cx + (ddx / d) * outer, 0.11);
-          head.y = lerp(head.y, cy + (ddy / d) * outer, 0.11);
+          head.x = lerp(head.x, cx + (ddx / d) * outer, 0.12);
+          head.y = lerp(head.y, cy + (ddy / d) * outer, 0.12);
         }
 
         // segments follow
@@ -970,7 +1068,7 @@
 
       // worm growth
       const softCap = 20 + Math.floor((state.nutrients / 450));
-      const maxW = clamp(softCap, 18, 44);
+      const maxW = clamp(softCap, 18, 46);
       if (col.worms.length < maxW && state.nutrients > 220 && Math.random() < 0.010) {
         col.worms.push(makeWorm(col, col.worms.length));
         state.nutrients -= 35;
@@ -981,14 +1079,14 @@
   }
 
   // ---------- Drawing ----------
-  function drawVignette() {
+  function drawVignette(extra = 0) {
     const r = canvas.getBoundingClientRect();
     const g = ctx.createRadialGradient(
       r.width * 0.55, r.height * 0.55, 60,
       r.width * 0.55, r.height * 0.55, Math.max(r.width, r.height)
     );
     g.addColorStop(0, "rgba(0,0,0,0)");
-    g.addColorStop(1, "rgba(0,0,0,0.55)");
+    g.addColorStop(1, `rgba(0,0,0,${0.55 + extra})`);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, r.width, r.height);
   }
@@ -996,7 +1094,7 @@
   function drawHeatmap() {
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
-    for (let i = Math.max(0, heatPts.length - 420); i < heatPts.length; i++) {
+    for (let i = Math.max(0, heatPts.length - 460); i < heatPts.length; i++) {
       const p = heatPts[i];
       ctx.beginPath();
       ctx.arc(p.x, p.y, SPICE.heatDotR, 0, TAU);
@@ -1018,7 +1116,7 @@
     const len = Math.max(1e-6, hypot(dx, dy));
     const nx = -dy / len;
     const ny = dx / len;
-    const bend = 90 + Math.sin(state.t * 0.9 + b.hue) * 20;
+    const bend = 90 + Math.sin(state.t * 0.9 + b.hue) * 22;
     const cx = mx + nx * bend;
     const cy = my + ny * bend;
 
@@ -1046,21 +1144,47 @@
     ctx.restore();
   }
 
+  // AURA around colonies (stronger + layered)
+  function drawColonyAura(col, sel) {
+    const warpSum = col.warpFeed + col.warpVol + col.warpStorm;
+    const pulse = 0.5 + 0.5 * Math.sin(state.t * (0.9 + col.dna.chaos * 0.35) + col.auraPhase);
+    const rBase = col.radius * (0.92 + warpSum * 0.08);
+    const aBoost = sel ? 0.06 : 0;
+
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+
+    // outer glow ring
+    ctx.beginPath();
+    ctx.arc(col.cx, col.cy, rBase * (1.08 + pulse * 0.03), 0, TAU);
+    ctx.fillStyle = hsl(col.biome.hue, 96, 56, 0.06 + warpSum * 0.07 + aBoost);
+    ctx.fill();
+
+    // inner colored mist
+    ctx.beginPath();
+    ctx.arc(col.cx, col.cy, rBase * (0.72 + pulse * 0.02), 0, TAU);
+    ctx.fillStyle = hsl(col.palette[0], 98, 60, 0.05 + warpSum * 0.05);
+    ctx.fill();
+
+    // “storm” aura highlight
+    if (col.warpStorm > 0.01) {
+      ctx.beginPath();
+      ctx.arc(col.cx, col.cy, rBase * (1.18 + pulse * 0.05), 0, TAU);
+      ctx.fillStyle = hsl(292, 98, 64, 0.03 + col.warpStorm * 0.08);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
   function drawColonyBlob(col, sel) {
     const warpSum = col.warpFeed + col.warpVol + col.warpStorm;
 
-    // biome aura
-    ctx.save();
-    ctx.globalCompositeOperation = "lighter";
-    ctx.beginPath();
-    ctx.arc(col.cx, col.cy, col.radius * (0.95 + warpSum * 0.08), 0, TAU);
-    ctx.fillStyle = hsl(col.biome.hue, 95, 56, 0.06 + warpSum * 0.06);
-    ctx.fill();
-    ctx.restore();
+    drawColonyAura(col, sel);
 
     // blob boundary
     ctx.beginPath();
-    const steps = 90;
+    const steps = 96;
     for (let i = 0; i <= steps; i++) {
       const ang = (i / steps) * TAU + col.blobSpin * state.t * 0.35;
       const mul = blobMul(col, ang, state.t * 0.6);
@@ -1072,11 +1196,11 @@
     }
     ctx.closePath();
 
-    const glowA = 0.10 + warpSum * 0.10 + (sel ? 0.05 : 0);
-    ctx.strokeStyle = hsl(col.dna.hueA, 95, 62, glowA);
-    ctx.lineWidth = sel ? 2.6 : 1.8;
-    ctx.shadowColor = hsl(col.dna.hueA, 95, 62, 0.18 + warpSum * 0.12);
-    ctx.shadowBlur = sel ? (18 + warpSum * 10) : (12 + warpSum * 8);
+    const glowA = 0.10 + warpSum * 0.10 + (sel ? 0.06 : 0);
+    ctx.strokeStyle = hsl(col.palette[0], 95, 62, glowA);
+    ctx.lineWidth = sel ? 2.8 : 1.9;
+    ctx.shadowColor = hsl(col.palette[0], 95, 62, 0.18 + warpSum * 0.14);
+    ctx.shadowBlur = sel ? (20 + warpSum * 10) : (13 + warpSum * 8);
     ctx.stroke();
     ctx.shadowBlur = 0;
 
@@ -1086,7 +1210,7 @@
     // core ring
     ctx.beginPath();
     ctx.arc(col.cx, col.cy, col.radius * 0.34, 0, TAU);
-    ctx.strokeStyle = hsl(col.dna.hueB, 90, 60, sel ? 0.18 : 0.11);
+    ctx.strokeStyle = hsl(col.palette[2], 90, 60, sel ? 0.20 : 0.12);
     ctx.lineWidth = sel ? 2.6 : 1.8;
     ctx.stroke();
   }
@@ -1100,15 +1224,8 @@
     ctx.save();
     ctx.translate(0, lift);
 
-    const rr = 14;
     ctx.beginPath();
-    ctx.moveTo(bx + rr, by);
-    ctx.arcTo(bx + badgeW, by, bx + badgeW, by + badgeH, rr);
-    ctx.arcTo(bx + badgeW, by + badgeH, bx, by + badgeH, rr);
-    ctx.arcTo(bx, by + badgeH, bx, by, rr);
-    ctx.arcTo(bx, by, bx + badgeW, by, rr);
-    ctx.closePath();
-
+    ctx.roundRect(bx, by, badgeW, badgeH, 14);
     ctx.fillStyle = "rgba(0,0,0,0.35)";
     ctx.fill();
     ctx.strokeStyle = "rgba(255,255,255,0.10)";
@@ -1165,10 +1282,10 @@
     ctx.moveTo(pts[0].x, pts[0].y);
     for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
 
-    const glowAlpha = w.boss ? 0.18 : 0.10;
-    ctx.strokeStyle = hsl(w.hue, 95, 62, glowAlpha);
-    ctx.lineWidth = w.baseR * (w.boss ? 0.70 : 0.55);
-    ctx.shadowColor = hsl(w.hue, 95, 62, w.boss ? 0.32 : 0.22);
+    const glowAlpha = w.boss ? 0.20 : 0.11;
+    ctx.strokeStyle = hsl(w.hue, w.sat, 62, glowAlpha);
+    ctx.lineWidth = w.baseR * (w.boss ? 0.72 : 0.55);
+    ctx.shadowColor = hsl(w.hue, w.sat, 62, w.boss ? 0.34 : 0.24);
     ctx.shadowBlur = w.boss ? 22 : 18;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -1180,14 +1297,14 @@
       const p = pts[i];
       const t = i / (pts.length - 1);
       const rad = lerp(w.baseR * 0.90, w.baseR * 0.20, t);
-      const alpha = lerp(0.90, 0.18, t);
+      const alpha = lerp(0.92, 0.18, t);
 
       const tintHue = col.biome.hue;
-      const mixHue = (w.hue * 0.70 + tintHue * 0.30) % 360;
+      const mixHue = (w.hue * 0.74 + tintHue * 0.26) % 360;
 
       ctx.beginPath();
       ctx.arc(p.x, p.y, rad, 0, TAU);
-      ctx.fillStyle = hsl((mixHue + t * 10) % 360, 95, lerp(60, 52, t), alpha);
+      ctx.fillStyle = hsl((mixHue + t * 12) % 360, w.sat, lerp(w.lum + 6, w.lum - 2, t), alpha);
       ctx.fill();
 
       if (i % 5 === 0) {
@@ -1198,12 +1315,12 @@
       }
     }
 
-    // head glow
+    // head glint
     const head = pts[0];
     ctx.beginPath();
     ctx.arc(head.x, head.y, w.baseR * 0.45, 0, TAU);
     ctx.fillStyle = "rgba(255,255,255,0.16)";
-    ctx.shadowColor = hsl(w.hue, 95, 62, w.boss ? 0.55 : 0.40);
+    ctx.shadowColor = hsl(w.hue, w.sat, 62, w.boss ? 0.55 : 0.40);
     ctx.shadowBlur = w.boss ? 20 : 16;
     ctx.fill();
     ctx.shadowBlur = 0;
@@ -1219,7 +1336,6 @@
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-    // background
     ctx.beginPath();
     ctx.roundRect(mm.x, mm.y, mm.w, mm.h, 14);
     ctx.fillStyle = "rgba(0,0,0,0.28)";
@@ -1227,7 +1343,6 @@
     ctx.strokeStyle = "rgba(255,255,255,0.10)";
     ctx.stroke();
 
-    // dots
     for (const c of state.colonies) {
       const nx = (c.cx - bounds.minX) / (bounds.maxX - bounds.minX);
       const ny = (c.cy - bounds.minY) / (bounds.maxY - bounds.minY);
@@ -1249,7 +1364,7 @@
       }
     }
 
-    // viewport hint
+    // viewport
     const vw = r.width / cam.zoom;
     const vh = r.height / cam.zoom;
     const viewCx = (r.width / 2) - cam.x;
@@ -1277,23 +1392,101 @@
     ctx.restore();
   }
 
+  function drawEruptions() {
+    if (!state.eruptions.length) return;
+
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+
+    for (const e of state.eruptions) {
+      const t = clamp(e.t, 0, 1);
+      const ease = t < 0.5 ? (2 * t * t) : (1 - Math.pow(-2 * t + 2, 2) / 2);
+
+      const x = lerp(e.sx, e.ex, ease);
+      const y = lerp(e.sy, e.ey, ease);
+
+      ctx.beginPath();
+      ctx.moveTo(lerp(e.sx, x, 0.75), lerp(e.sy, y, 0.75));
+      ctx.lineTo(x, y);
+
+      ctx.strokeStyle = hsl(e.hue, 98, 62, e.a);
+      ctx.lineWidth = e.w;
+      ctx.shadowColor = hsl(e.hue, 98, 62, e.a);
+      ctx.shadowBlur = 16;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      ctx.beginPath();
+      ctx.arc(x, y, 2.0 + t * 2.2, 0, TAU);
+      ctx.fillStyle = hsl(e.hue, 98, 62, e.a * 0.9);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  function drawFlashOverlay() {
+    if (state.flashA <= 0) return;
+    const r = canvas.getBoundingClientRect();
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = `rgba(120, 220, 255, ${state.flashA * 0.28})`;
+    ctx.fillRect(0, 0, r.width, r.height);
+    ctx.restore();
+  }
+
+  function drawBanner() {
+    if (state.bannerT <= 0 || !state.bannerText) return;
+    const r = canvas.getBoundingClientRect();
+    const t = state.bannerT / SPICE.bannerSecs; // 1..0
+    const a = clamp(1 - (1 - t) * 1.2, 0, 1);
+    const y = 18 + (1 - a) * -16;
+
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = a;
+
+    const w = Math.min(r.width - 26, 560);
+    const x = (r.width - w) / 2;
+
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, 52, 16);
+    ctx.fillStyle = "rgba(0,0,0,0.34)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(x + 16, y + 10);
+    ctx.lineTo(x + w - 16, y + 10);
+    ctx.strokeStyle = "rgba(120,255,210,0.25)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(233,238,247,0.92)";
+    ctx.font = "700 13px Space Grotesk, system-ui, -apple-system";
+    ctx.fillText("MILESTONE UNLOCKED", x + 14, y + 22);
+
+    ctx.fillStyle = "rgba(233,238,247,0.82)";
+    ctx.font = "600 13px Space Grotesk, system-ui, -apple-system";
+    ctx.fillText(state.bannerText, x + 14, y + 40);
+
+    ctx.restore();
+  }
+
   function draw() {
     const r = canvas.getBoundingClientRect();
     ctx.clearRect(0, 0, r.width, r.height);
 
-    // camera transform
+    // camera
     ctx.save();
     ctx.translate(r.width / 2, r.height / 2);
     ctx.scale(cam.zoom, cam.zoom);
     ctx.translate(-r.width / 2 + cam.x, -r.height / 2 + cam.y);
 
-    // bridges behind everything
     for (const b of state.bridges) drawBridge(b);
-
-    // heatmap behind worms
     drawHeatmap();
 
-    // colonies
     for (const col of state.colonies) {
       const sel = col.id === state.selectedColonyId;
       drawColonyBlob(col, sel);
@@ -1301,7 +1494,6 @@
       for (const w of col.worms) drawWorm(w, col);
     }
 
-    // shockwaves
     for (const s of state.shockwaves) {
       ctx.beginPath();
       ctx.arc(s.x, s.y, s.r, 0, TAU);
@@ -1313,11 +1505,27 @@
       ctx.shadowBlur = 0;
     }
 
+    drawEruptions();
+
     ctx.restore();
 
-    // screen-space overlay
     drawMinimap();
-    drawVignette();
+    drawVignette(state.vignettePunch);
+    drawFlashOverlay();
+    drawBanner();
+  }
+
+  // ---------- Vignette ----------
+  function drawVignette(extra = 0) {
+    const r = canvas.getBoundingClientRect();
+    const g = ctx.createRadialGradient(
+      r.width * 0.55, r.height * 0.55, 60,
+      r.width * 0.55, r.height * 0.55, Math.max(r.width, r.height)
+    );
+    g.addColorStop(0, "rgba(0,0,0,0)");
+    g.addColorStop(1, `rgba(0,0,0,${0.55 + extra})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, r.width, r.height);
   }
 
   // ---------- HUD ----------
@@ -1330,9 +1538,9 @@
   }
 
   // ---------- Controls ----------
-  if (btnFeed)  btnFeed.addEventListener("click", () => simBuy(1));
-  if (btnSmall) btnSmall.addEventListener("click", () => simBuy(0.6));
-  if (btnBig)   btnBig.addEventListener("click", () => simBuy(1.75));
+  if (btnFeed)   btnFeed.addEventListener("click", () => simBuy(1));
+  if (btnSmall)  btnSmall.addEventListener("click", () => simBuy(0.6));
+  if (btnBig)    btnBig.addEventListener("click", () => simBuy(1.75));
   if (btnMutate) btnMutate.addEventListener("click", forceMutation);
   if (btnReset)  btnReset.addEventListener("click", () => init(true));
 
@@ -1351,11 +1559,16 @@
     state.shockwaves = [];
     state.bridges = [];
 
+    state.slowMoT = 0;
+    state.flashA = 0;
+    state.vignettePunch = 0;
+    state.bannerT = 0;
+    state.bannerText = "";
+    state.eruptions = [];
+
     state.t = 0;
     state.nextSplitAt = SPLIT_STEP_MC;
     state.lastMutationAt = performance.now();
-    state.lastVol = 0;
-    state.lastMcap = START_MC;
     state.bossCooldown = 0;
 
     heatPts.length = 0;
@@ -1368,23 +1581,13 @@
 
     if (clearLog && elLog) elLog.innerHTML = "";
     logEvent("info", "Ready • Tap colonies • Drag pan • Pinch zoom • Double-tap center.");
-    logEvent("info", "Minimap: tap to jump. Boss worm can spawn on buys.");
+    logEvent("info", "Polish enabled: cinematic milestones + richer color diversity + stronger auras.");
     updateHUD();
 
     setTimeout(() => selectColony(state.colonies[0]), 50);
   }
 
-  // ---------- Loop ----------
-  let last = performance.now();
-  function loop(t) {
-    const dt = Math.min(0.033, (t - last) / 1000);
-    last = t;
-    step(dt);
-    draw();
-    requestAnimationFrame(loop);
-  }
-
-  // ---------- Patch: add missing canvas roundRect for older browsers ----------
+  // ---------- roundRect polyfill ----------
   if (!CanvasRenderingContext2D.prototype.roundRect) {
     CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
       const rr = Math.min(r, w / 2, h / 2);
@@ -1399,7 +1602,26 @@
     };
   }
 
-  // boot
+  // ---------- LOOP ----------
+  let last = performance.now();
+  function loop(t) {
+    const dt = Math.min(0.033, (t - last) / 1000);
+    last = t;
+
+    // cinematic timers
+    if (state.slowMoT > 0) state.slowMoT = Math.max(0, state.slowMoT - dt);
+    if (state.flashA > 0) state.flashA = Math.max(0, state.flashA - dt * 1.5);
+    if (state.vignettePunch > 0) state.vignettePunch = Math.max(0, state.vignettePunch - dt * 0.9);
+    if (state.bannerT > 0) state.bannerT = Math.max(0, state.bannerT - dt);
+
+    // slow-mo is handled inside step()
+    step(dt);
+    draw();
+
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- Boot ----------
   init(false);
   requestAnimationFrame(loop);
 })();
