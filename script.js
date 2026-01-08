@@ -811,3 +811,7 @@
   // Intro
   logEvent("info", "Upgrades live: shockwaves, DNA badges, tap-to-select colonies, +$50k mcap milestone splits.");
 })();
+setTimeout(() => {
+  console.log("JS LOADED OK");
+  logEvent("info", "Simulation heartbeat OK.");
+}, 500);
